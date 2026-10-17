@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Magic Jungle</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{margin:0;height:100dvh;overflow:hidden;font-family:"Comic Sans MS","Baloo 2",system-ui,sans-serif;color:#3b2a14}
+  html[lang=ur] body{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaleeq","Urdu Typesetting","Segoe UI",Tahoma,sans-serif}
+  html[lang=ur] .bubble,html[lang=ur] .sub,html[lang=ur] .sticker{line-height:1.9}
+  html[lang=ur] .big,html[lang=ur] .chip{line-height:1.4}
+  body{background:linear-gradient(#7fd3ff 0%,#c9efff 55%,#fff6c9 100%)}
+  /* scenery */
+  .sun{position:fixed;top:4vh;right:6vw;width:90px;height:90px;border-radius:50%;background:radial-gradient(#fff7a8,#ffd23f);box-shadow:0 0 60px 20px #ffe58a;animation:pulse 4s ease-in-out infinite}
+  .cloud{position:fixed;font-size:70px;opacity:.9;animation:drift linear infinite}
+  .hill{position:fixed;bottom:-8vh;border-radius:50%;z-index:0}
+  .h1{left:-10vw;width:70vw;height:38vh;background:#7ed957}
+  .h2{right:-15vw;width:80vw;height:32vh;background:#5ec44a}
+  @keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(110vw)}}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  @keyframes bob{50%{transform:translateY(-8px)}}
+  @keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+  @keyframes shake{25%{transform:translateX(-14px) rotate(-6deg)}75%{transform:translateX(14px) rotate(6deg)}}
+  @keyframes dance{25%{transform:rotate(-12deg) scale(1.1)}75%{transform:rotate(12deg) scale(1.1)}}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  /* layout */
+  #app{position:relative;z-index:2;height:100dvh;display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .top{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:8px}
+  .chip{background:#fff;border-radius:99px;padding:8px 16px;font-size:22px;font-weight:800;box-shadow:0 4px 0 #0002;cursor:pointer;min-height:44px;display:flex;align-items:center;white-space:nowrap}
+  .stage{flex:1;width:100%;max-width:820px;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;padding:6px 12px 20px;overflow:auto;-webkit-overflow-scrolling:touch}
+  h1{margin:0;font-size:clamp(34px,8vw,64px);color:#fff;text-shadow:0 5px 0 #e0762f,0 8px 12px #0003;text-align:center;line-height:1.4}
+  .sub{font-size:clamp(16px,3.5vw,22px);font-weight:700;color:#7a4b12;text-align:center}
+  .menu{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;width:100%}
+  .big{border:0;border-radius:28px;padding:18px 22px;min-width:200px;font-family:inherit;font-weight:800;font-size:clamp(22px,5vw,30px);color:#fff;cursor:pointer;box-shadow:0 8px 0 #0003;transition:transform .1s;touch-action:manipulation}
+  .menu .big{flex:1 1 200px;max-width:320px}
+  .big:active{transform:translateY(6px);box-shadow:0 2px 0 #0003}
+  .big small{display:block;font-size:.55em;font-weight:700;opacity:.95}
+  .c1{background:#ff6b6b}.c2{background:#a66cff}.c3{background:#2bb673}.c4{background:#ffa41b}
+  .animal{font-size:clamp(70px,16vw,120px);animation:bob 2s ease-in-out infinite;line-height:1}
+  .animal.shake{animation:shake .5s}.animal.dance{animation:dance .6s infinite}
+  .bubble{background:#fff;border-radius:24px;padding:12px 20px;font-size:clamp(20px,4.6vw,30px);font-weight:800;text-align:center;box-shadow:0 5px 0 #0002;position:relative;max-width:96%}
+  .bubble b{color:#e0562f;font-size:1.5em}
+  .bubble .hint{font-size:.65em}
+  .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%}
+  .fruit{font-size:clamp(40px,10vw,64px);background:none;border:0;cursor:pointer;animation:bob 1.8s ease-in-out infinite;padding:2px;touch-action:manipulation}
+  .fruit:nth-child(2n){animation-delay:.4s}.fruit:nth-child(3n){animation-delay:.8s}
+  .plate{background:#fff;border:6px dashed #ffb347;border-radius:30px;min-height:90px;min-width:260px;width:90%;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;padding:8px;font-size:clamp(32px,8vw,48px)}
+  .plate span{animation:pop .3s}
+  .count{font-size:clamp(30px,8vw,48px);font-weight:800;color:#e0562f;min-height:1.2em}
+  .go{background:#2bb673}.redo{background:#ff7a59}
+  .pots{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .pot{width:clamp(64px,18vw,92px);height:clamp(64px,18vw,92px);border-radius:50%;border:6px solid #fff;box-shadow:0 6px 0 #0003;cursor:pointer;transition:transform .15s;touch-action:manipulation}
+  .pot.sel{transform:scale(1.2) translateY(-8px);border-color:#ffd23f}
+  .bowl{width:clamp(110px,28vw,150px);height:clamp(110px,28vw,150px);border-radius:50%;border:8px solid #fff;box-shadow:0 8px 0 #0003;background:#eee;transition:background .5s;display:flex;align-items:center;justify-content:center;font-size:40px}
+  .opts{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .opt{width:clamp(80px,22vw,110px);height:clamp(80px,22vw,110px);border-radius:26px;border:0;font-family:inherit;font-weight:800;font-size:clamp(38px,10vw,56px);color:#fff;cursor:pointer;box-shadow:0 8px 0 #0003;touch-action:manipulation}
+  .opt:active{transform:translateY(6px);box-shadow:0 2px 0 #0003}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;width:100%}
+  .sticker{background:#fff;border-radius:22px;padding:10px;text-align:center;box-shadow:0 5px 0 #0002;font-weight:800}
+  .sticker .e{font-size:60px;display:block;line-height:1.2}.sticker.lock .e{filter:grayscale(1) brightness(0) opacity(.25)}
+  .overlay{position:fixed;inset:0;background:#0006;z-index:20;display:flex;align-items:center;justify-content:center;padding:12px}
+  .modal{background:#fff;border-radius:34px;padding:22px 26px;text-align:center;max-width:90%;max-height:92dvh;overflow:auto;animation:pop .4s}
+  .modal h2{margin:0 0 6px;font-size:clamp(28px,7vw,44px);color:#e0562f}
+  .confetti{position:fixed;top:-60px;z-index:30;font-size:34px;animation:fall linear forwards;pointer-events:none}
+
+  /* ---- responsive ---- */
+  @media(min-width:900px){
+    .stage{max-width:980px;gap:18px}
+    .animal{font-size:130px}
+    .fruit{font-size:72px}
+    .plate{max-width:640px}
+    .sun{width:120px;height:120px}
+  }
+  @media(max-width:420px){
+    .chip{font-size:16px;padding:6px 10px}
+    .menu{gap:10px}
+    .menu .big{min-width:0;flex:1 1 140px;padding:14px 10px}
+    .sun{width:60px;height:60px}
+    .cloud{font-size:44px!important}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+    .plate{min-width:0;border-width:4px}
+  }
+  @media(max-height:520px){
+    .top{padding:4px 10px}
+    .stage{gap:6px;padding-bottom:10px}
+    .animal{font-size:56px}
+    h1{font-size:32px}
+    .sub{display:none}
+    .bubble{padding:6px 14px;font-size:18px}
+    .fruit{font-size:36px}
+    .plate{min-height:56px;font-size:30px;border-width:4px}
+    .count{font-size:24px;min-height:1em}
+    .big{padding:8px 16px;font-size:20px;border-radius:20px}
+    .big small{display:none}
+    .opt{width:70px;height:70px;font-size:34px}
+    .pot{width:54px;height:54px}
+    .bowl{width:84px;height:84px}
+    .sun,.cloud{display:none}
+    .modal{padding:12px 18px}
+    .modal .animal{font-size:56px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="sun"></div>
+<div class="cloud" style="top:8vh;animation-duration:70s">☁️</div>
+<div class="cloud" style="top:20vh;animation-duration:100s;animation-delay:-40s;font-size:50px">☁️</div>
+<div class="hill h1"></div><div class="hill h2"></div>
+<div id="app"></div>
+
+<script>
+/* ---------- language data (English + Urdu only) ---------- */
+const ANIMALS=[
+ {e:'🦁',en:'Lion',ur:'شیر'},{e:'🐘',en:'Elephant',ur:'ہاتھی'},{e:'🦜',en:'Parrot',ur:'طوطا'},
+ {e:'🐒',en:'Monkey',ur:'بندر'},{e:'🐱',en:'Cat',ur:'بلی'},{e:'🦚',en:'Peacock',ur:'مور'},
+ {e:'🦓',en:'Zebra',ur:'زیبرا'},{e:'🐪',en:'Camel',ur:'اونٹ'},{e:'🐐',en:'Goat',ur:'بکری'},{e:'🐢',en:'Turtle',ur:'کچھوا'}];
+const FRUITS=['🍎','🍌','🍊','🍇','🍉','🥭'];
+const NUM={en:['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'],
+           ur:['','ایک','دو','تین','چار','پانچ','چھ','سات','آٹھ','نو','دس']};
+const POTS={red:'#e53935',yellow:'#fdd835',blue:'#1e88e5',white:'#ffffff'};
+const MIX={
+ 'red+yellow':['#fb8c00',{en:'Orange',ur:'نارنجی'},'🟠'],
+ 'blue+yellow':['#43a047',{en:'Green',ur:'ہرا'},'🟢'],
+ 'blue+red':['#8e24aa',{en:'Purple',ur:'جامنی'},'🟣'],
+ 'red+white':['#f8a5c2',{en:'Pink',ur:'گلابی'},'🩷'],
+ 'blue+white':['#81d4fa',{en:'Sky blue',ur:'آسمانی'},'🩵'],
+ 'white+yellow':['#fff59d',{en:'Light yellow',ur:'ہلکا پیلا'},'']};
+const SAME={red:['#e53935',{en:'Red',ur:'لال'}],yellow:['#fdd835',{en:'Yellow',ur:'پیلا'}],
+            blue:['#1e88e5',{en:'Blue',ur:'نیلا'}],white:['#ffffff',{en:'White',ur:'سفید'}]};
+const ODD=['#ccc',{en:'Strange colour',ur:'عجیب رنگ'}];
+const TARGETS=['red+yellow','blue+yellow','blue+red','red+white','blue+white'];
+
+const TX={
+ title:{en:'Magic Jungle',ur:'جادوئی جنگل'},
+ sub:{en:'Feed the animals! Play and learn 🎉',ur:'جانوروں کی دعوت! کھیلو اور سیکھو 🎉'},
+ count:{en:'Counting',ur:'گنتی'}, colour:{en:'Colours',ur:'رنگ'}, add:{en:'Adding',ur:'جوڑو'}, friends:{en:'My Friends',ur:'میرے دوست'},
+ feed:{en:'Feed ✅',ur:'کھلاؤ ✅'},
+ wantsCount:{en:(a,n,f)=>`${a} wants <b>${n}</b> ${f}!`, ur:(a,n,f)=>`${a} کو <b>${n}</b> ${f} چاہئیں!`},
+ needCount:{en:n=>`I need ${n}! Count again 😊`, ur:n=>`مجھے ${n} چاہئیں! دوبارہ گنو 😊`},
+ wantsColour:{en:(a,c,h,e)=>`${a} wants <b style="color:${h}">${c}</b>! ${e}`, ur:(a,c,h,e)=>`${a} کو <b style="color:${h}">${c}</b> رنگ چاہیے! ${e}`},
+ mixHint:{en:'Mix two colours 👇',ur:'دو رنگ ملاؤ 👇'},
+ madeColour:{en:c=>`That made ${c}! Try again 🎨`, ur:c=>`یہ تو ${c} بنا! پھر کوشش کرو 🎨`},
+ addQ:{en:(a,x,f,y)=>`${a} has <b>${x}</b> ${f} and gets <b>${y}</b> more.<br>How many in all?`,
+       ur:(a,x,f,y)=>`${a} کے پاس <b>${x}</b> ${f} ہیں اور <b>${y}</b> مزید ملے۔<br>کل کتنے ہوئے؟`},
+ addWrong:{en:'Think again! Try counting 🤔',ur:'پھر سوچو! گن کر دیکھو 🤔'},
+ well:{en:'Well done!',ur:'شاباش!'}, newFriend:{en:'New friend!',ur:'نیا دوست ملا!'},
+ isFriend:{en:a=>`${a} is now your friend!`, ur:a=>`${a} اب آپ کا دوست ہے!`},
+ wonStar:{en:'You won a ⭐!',ur:'آپ نے ایک ⭐ جیتا!'},
+ next:{en:'Next ▶',ur:'آگے چلو ◀'},
+ album:{en:'My Jungle Friends 🐾',ur:'میرے جنگل کے دوست 🐾'},
+ albumSub:{en:'Every 3 ⭐ unlocks a new friend!',ur:'ہر 3 ⭐ پر ایک نیا دوست ملتا ہے!'},
+ langBtn:{en:'اردو',ur:'English'}
+};
+
+/* ---------- state ---------- */
+let stars=+(localStorage.jdStars||0), lang=localStorage.jdLang||'en', mode='', screen='home', cur={};
+const app=document.getElementById('app');
+const R=n=>Math.floor(Math.random()*n), pick=a=>a[R(a.length)];
+const unlocked=()=>Math.min(ANIMALS.length,1+Math.floor(stars/3));
+const save=()=>{try{localStorage.jdStars=stars;localStorage.jdLang=lang}catch(e){}};
+const t=(k,...a)=>{const v=TX[k][lang];return typeof v==='function'?v(...a):v};
+const nm=o=>o[lang];
+function setLang(l){lang=l;save();document.documentElement.lang=l;document.documentElement.dir=l==='ur'?'rtl':'ltr';document.title=t('title');}
+function toggleLang(){setLang(lang==='en'?'ur':'en');
+  if(screen==='album')album(); else if(!mode)home(); else next();}
+
+/* ---------- sound ---------- */
+let AC; function tone(f,d=.15,tm=0,type='sine',v=.2){try{
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+tm;
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.001,s+d);
+  o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+d);}catch(e){}}
+const sPop=n=>tone(300+n*60,.12,0,'triangle');
+const sWin=()=>[523,659,784,1047].forEach((f,i)=>tone(f,.25,i*.12,'triangle'));
+const sNo=()=>{tone(220,.2,0,'sawtooth',.12);tone(180,.25,.15,'sawtooth',.12)};
+/* speak in the chosen language; Urdu only if the device has an Urdu voice */
+function say(en,ur){try{
+  speechSynthesis.cancel();
+  let text=en,code='en-US';
+  if(lang==='ur'){
+    const has=speechSynthesis.getVoices().some(v=>v.lang.toLowerCase().startsWith('ur'));
+    if(!has||!ur)return; text=ur;code='ur-PK';
+  }
+  const u=new SpeechSynthesisUtterance(text);u.lang=code;u.rate=.9;u.pitch=1.3;speechSynthesis.speak(u);}catch(e){}}
+
+/* ---------- screens ---------- */
+function shell(inner,back=true){
+  app.innerHTML=`<div class="top">${back?'<div class="chip" onclick="home()">🏠</div>':'<div></div>'}
+   <div class="chip" onclick="toggleLang()">🌐 ${t('langBtn')}</div>
+   <div class="chip" onclick="album()">⭐ ${stars} &nbsp;🐾 ${unlocked()}/${ANIMALS.length}</div></div>
+   <div class="stage">${inner}</div>`;
+}
+function home(){
+  mode='';screen='home';
+  shell(`<div class="animal">${ANIMALS[R(unlocked())].e}</div>
+   <h1>${t('title')}</h1><div class="sub">${t('sub')}</div>
+   <div class="menu">
+    <button class="big c1" onclick="start('count')">🍎 ${t('count')}</button>
+    <button class="big c2" onclick="start('color')">🎨 ${t('colour')}</button>
+    <button class="big c3" onclick="start('add')">➕ ${t('add')}</button>
+    <button class="big c4" onclick="album()">🐾 ${t('friends')}</button>
+   </div>`,false);
+}
+function start(m){mode=m;next();}
+function next(){screen='play'; if(mode==='count')count(); else if(mode==='color')color(); else add();}
+const maxN=()=>Math.min(10,3+Math.floor(stars/3));
+const animal=()=>ANIMALS[R(unlocked())];
+
+/* counting */
+function count(){
+  const n=1+R(maxN()), f=pick(FRUITS), a=animal();
+  cur={t:n,taken:0,f,a};
+  const total=Math.min(12,n+2+R(2));
+  shell(`<div class="animal" id="an">${a.e}</div>
+   <div class="bubble">${t('wantsCount',nm(a),n,f)}<br><span class="hint">${n} • ${NUM[lang][n]}</span></div>
+   <div class="row" id="field">${Array.from({length:total},()=>`<button class="fruit" onclick="take(this)">${f}</button>`).join('')}</div>
+   <div class="count" id="cnt"></div>
+   <div class="plate" id="plate"></div>
+   <div class="menu"><button class="big go" onclick="feed()">${t('feed')}</button><button class="big redo" onclick="count()">🔄</button></div>`);
+  setTimeout(()=>say(`${a.en} wants ${n}`,`${a.ur} کو ${NUM.ur[n]} چاہئیں`),200);
+}
+function take(b){
+  b.style.visibility='hidden'; b.onclick=null; cur.taken++;
+  const s=document.createElement('span');s.textContent=cur.f;document.getElementById('plate').appendChild(s);
+  const k=cur.taken;
+  document.getElementById('cnt').textContent=k<=10?`${k} • ${NUM[lang][k]}`:k;
+  sPop(k);say(String(k),k<=10?NUM.ur[k]:String(k));
+}
+function feed(){ if(cur.taken===cur.t)win(); else{wrong(t('needCount',cur.t));setTimeout(count,1600);} }
+
+/* colours */
+function color(){
+  const key=pick(TARGETS), m=MIX[key], a=animal();
+  cur={key,m,sel:[],a};
+  shell(`<div class="animal" id="an">${a.e}</div>
+   <div class="bubble">${t('wantsColour',nm(a),nm(m[1]),m[0],m[2])}<br><span class="hint">${t('mixHint')}</span></div>
+   <div class="bowl" id="bowl"></div>
+   <div class="pots" dir="ltr">${Object.entries(POTS).map(([k,c])=>`<div class="pot" id="p_${k}" style="background:${c}" onclick="mix('${k}')"></div>`).join('')}</div>`);
+  setTimeout(()=>say(`Make ${m[1].en}`,`${m[1].ur} رنگ بناؤ`),200);
+}
+function mix(k){
+  sPop(2); cur.sel.push(k); document.getElementById('p_'+k).classList.add('sel');
+  if(cur.sel.length<2){document.getElementById('bowl').style.background=POTS[k];return;}
+  const [x,y]=cur.sel, key=[x,y].sort().join('+');
+  const res = x===y ? SAME[x] : (MIX[key]||ODD);
+  const bowl=document.getElementById('bowl'); bowl.style.background=res[0]; bowl.textContent='✨';
+  setTimeout(()=>{
+    if(key===cur.key) win();
+    else{ wrong(t('madeColour',nm(res[1]))); setTimeout(resetMix,1300); }
+  },700);
+}
+function resetMix(){ cur.sel=[]; document.querySelectorAll('.pot').forEach(p=>p.classList.remove('sel')); const b=document.getElementById('bowl'); if(b){b.style.background='#eee';b.textContent='';} }
+
+/* adding */
+function add(){
+  const lim=maxN()+1, x=1+R(Math.max(1,Math.min(lim-1,5))), y=1+R(Math.max(1,Math.min(lim-x,5))), s=x+y, f=pick(FRUITS), an=animal();
+  const opts=new Set([s]); while(opts.size<3){opts.add(Math.max(1,Math.min(10,s+R(5)-2)));}
+  const arr=[...opts].sort(()=>Math.random()-.5), cols=['#ff6b6b','#a66cff','#ffa41b'];
+  cur={s,a:an};
+  shell(`<div class="animal" id="an">${an.e}</div>
+   <div class="bubble">${t('addQ',nm(an),x,f,y)}</div>
+   <div class="row" dir="ltr" style="font-size:clamp(34px,8vw,50px)">${f.repeat(x)} <b style="color:#e0562f">+</b> ${f.repeat(y)} <b style="color:#e0562f">= ?</b></div>
+   <div class="opts" dir="ltr">${arr.map((v,i)=>`<button class="opt" style="background:${cols[i]}" onclick="ans(${v})">${v}</button>`).join('')}</div>`);
+  setTimeout(()=>say(`${x} plus ${y}`,`${NUM.ur[x]} جمع ${NUM.ur[y]}`),200);
+}
+function ans(v){ if(v===cur.s)win(); else wrong(t('addWrong')); }
+
+/* feedback */
+function wrong(msg){
+  sNo(); const el=document.getElementById('an'); if(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
+  const b=document.querySelector('.bubble'); if(b)b.innerHTML=msg; say('Try again','دوبارہ کوشش کرو');
+}
+function confetti(){
+  for(let i=0;i<36;i++){const c=document.createElement('div');c.className='confetti';c.textContent=pick(['⭐','🎉','🎈','✨','🌟']);
+    c.style.left=R(100)+'vw';c.style.animationDuration=(2+Math.random()*2)+'s';c.style.animationDelay=Math.random()+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),5000);}
+}
+function win(){
+  const before=unlocked(); stars++; save(); sWin(); confetti(); say('Great job!','شاباش');
+  const after=unlocked(), nu=after>before?ANIMALS[after-1]:null;
+  const o=document.createElement('div');o.className='overlay';
+  o.innerHTML=`<div class="modal"><div class="animal dance">${(nu||cur.a).e}</div>
+   <h2>${nu?t('newFriend'):t('well')} 🎉</h2>
+   <div class="bubble" style="box-shadow:none">${nu?t('isFriend',nm(nu)):t('wonStar')}</div><br>
+   <button class="big go" onclick="this.closest('.overlay').remove();next()">${t('next')}</button></div>`;
+  document.body.appendChild(o);
+}
+function album(){
+  screen='album';
+  shell(`<h1 style="font-size:clamp(28px,7vw,48px)">${t('album')}</h1>
+   <div class="sub">${t('albumSub')}</div>
+   <div class="grid">${ANIMALS.map((a,i)=>`<div class="sticker ${i<unlocked()?'':'lock'}"><span class="e">${a.e}</span>${i<unlocked()?nm(a):'?'}</div>`).join('')}</div>`);
+}
+setLang(lang);
+home();
+</script>
+</body>
+</html>
