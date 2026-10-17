@@ -12,6 +12,9 @@
   html[lang=ur] .big,html[lang=ur] .chip{line-height:1.4}
   body{background:linear-gradient(#7fd3ff 0%,#c9efff 55%,#fff6c9 100%)}
   /* scenery */
+  /* scrolling works, but the scrollbar is hidden */
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{display:none}
   .sun{position:fixed;top:4vh;right:6vw;width:90px;height:90px;border-radius:50%;background:radial-gradient(#fff7a8,#ffd23f);box-shadow:0 0 60px 20px #ffe58a;animation:pulse 4s ease-in-out infinite}
   .cloud{position:fixed;font-size:70px;opacity:.9;animation:drift linear infinite}
   .hill{position:fixed;bottom:-8vh;border-radius:50%;z-index:0}
