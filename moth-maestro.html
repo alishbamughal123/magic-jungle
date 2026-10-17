@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Moth Maestro</title>
+<style>
+  html,body{margin:0;height:100%;background:#07060f;color:#cfd3ff;font-family:system-ui,Segoe UI,sans-serif;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+  canvas{background:radial-gradient(circle at 50% 40%,#171433,#07060f);max-width:100vw;max-height:100vh;border-radius:12px;box-shadow:0 0 60px #3b2d8f55;touch-action:none;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c" width="900" height="600"></canvas>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const MAX_LIT = 2;
+let state = 'title', level = 1, lives = 3, score = 0, best = +(localStorage.mothBest || 0);
+let moth, lamps, pollen, zappers, spiders, parts = [], t = 0, msg = '', msgT = 0;
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function spawnFree(minD, avoid) {
+  for (let i = 0; i < 200; i++) {
+    const p = { x: rnd(50, W - 50), y: rnd(70, H - 50) };
+    if (avoid.every(o => dist(p, o) > minD)) return p;
+  }
+  return { x: rnd(50, W - 50), y: rnd(70, H - 50) };
+}
+
+function buildLevel() {
+  const used = [];
+  moth = { x: W / 2, y: H - 60, vx: 0, vy: 0, a: 0, invuln: 2 };
+  used.push(moth);
+  lamps = [];
+  const nl = Math.min(5 + Math.floor(level / 3), 8);
+  for (let i = 0; i < nl; i++) { const p = spawnFree(110, used); p.lit = i === 0 ? 1 : 0; p.order = 0; lamps.push(p); used.push(p); }
+  lamps[0].lit = true; lamps[0].order = 1; lamps.forEach(l => { if (l !== lamps[0]) l.lit = false; });
+  zappers = []; const nz = Math.min(1 + level, 9);
+  for (let i = 0; i < nz; i++) { const p = spawnFree(90, used); p.r = 26; p.ph = rnd(0, 6.28); zappers.push(p); used.push(p); }
+  pollen = []; const np = 4 + level;
+  for (let i = 0; i < np; i++) { const p = spawnFree(55, used); p.got = false; pollen.push(p); used.push(p); }
+  spiders = []; const ns = Math.floor(level / 2);
+  for (let i = 0; i < ns; i++) {
+    const p = spawnFree(150, [moth]); const a = rnd(0, 6.28), s = rnd(50, 80) + level * 4;
+    spiders.push({ x: p.x, y: p.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s });
+  }
+}
+
+function startGame() { level = 1; lives = 3; score = 0; buildLevel(); state = 'play'; flash('Level 1 — lure the moth to the pollen'); }
+function flash(m) { msg = m; msgT = 3; }
+
+function burst(x, y, col, n = 18) {
+  for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), s = rnd(30, 200); parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rnd(.4, 1), col }); }
+}
+
+function hurt() {
+  burst(moth.x, moth.y, '#ff8a5c', 30);
+  lives--;
+  if (lives <= 0) { state = 'over'; if (score > best) { best = score; try { localStorage.mothBest = best; } catch (e) {} } return; }
+  moth.x = W / 2; moth.y = H - 60; moth.vx = moth.vy = 0; moth.invuln = 2.2;
+}
+
+function toggleLamp(l) {
+  if (l.lit) { l.lit = false; return; }
+  const lit = lamps.filter(x => x.lit);
+  if (lit.length >= MAX_LIT) { lit.sort((a, b) => a.order - b.order)[0].lit = false; }
+  l.lit = true; l.order = t;
+  burst(l.x, l.y, '#ffe9a0', 10);
+}
+
+function pointer(e) {
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+  if (state !== 'play') { if (state === 'title' || state === 'over') startGame(); return; }
+  let best = null, bd = 55;
+  for (const l of lamps) { const d = Math.hypot(l.x - x, l.y - y); if (d < bd) { bd = d; best = l; } }
+  if (best) toggleLamp(best);
+}
+cv.addEventListener('pointerdown', pointer);
+addEventListener('keydown', e => {
+  if (e.key === 'r' || e.key === 'R') startGame();
+  if (state !== 'play') { if (e.key === ' ' || e.key === 'Enter') startGame(); return; }
+  const n = parseInt(e.key); if (n >= 1 && n <= lamps.length) toggleLamp(lamps[n - 1]);
+});
+
+function update(dt) {
+  t += dt; if (msgT > 0) msgT -= dt;
+  parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .97; p.vy *= .97; p.life -= dt; });
+  parts = parts.filter(p => p.life > 0);
+  if (state !== 'play') return;
+
+  // Moth: pulled toward lit lamps, with a swirl so it orbits instead of crashing in
+  let ax = 0, ay = 0;
+  for (const l of lamps) {
+    if (!l.lit) continue;
+    const dx = l.x - moth.x, dy = l.y - moth.y, d = Math.hypot(dx, dy) || 1;
+    const f = Math.max(0, 1 - d / 520) * 340;
+    ax += dx / d * f + (-dy / d) * f * .55;
+    ay += dy / d * f + (dx / d) * f * .55;
+  }
+  // flutter
+  ax += Math.sin(t * 7) * 25; ay += Math.cos(t * 6.1) * 25;
+  moth.vx += ax * dt; moth.vy += ay * dt;
+  const damp = Math.pow(.45, dt); moth.vx *= damp; moth.vy *= damp;
+  const sp = Math.hypot(moth.vx, moth.vy), maxS = 230;
+  if (sp > maxS) { moth.vx *= maxS / sp; moth.vy *= maxS / sp; }
+  moth.x += moth.vx * dt; moth.y += moth.vy * dt;
+  if (moth.x < 12) { moth.x = 12; moth.vx = Math.abs(moth.vx) * .6; }
+  if (moth.x > W - 12) { moth.x = W - 12; moth.vx = -Math.abs(moth.vx) * .6; }
+  if (moth.y < 12) { moth.y = 12; moth.vy = Math.abs(moth.vy) * .6; }
+  if (moth.y > H - 12) { moth.y = H - 12; moth.vy = -Math.abs(moth.vy) * .6; }
+  if (sp > 8) moth.a = Math.atan2(moth.vy, moth.vx);
+  if (moth.invuln > 0) moth.invuln -= dt;
+
+  // Lamp cores burn the moth
+  for (const l of lamps) if (l.lit && dist(l, moth) < 13 && moth.invuln <= 0) { hurt(); return; }
+  // Zappers
+  for (const z of zappers) if (dist(z, moth) < z.r + 6 && moth.invuln <= 0) { hurt(); return; }
+  // Spiders
+  for (const s of spiders) {
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    if (s.x < 15 || s.x > W - 15) s.vx *= -1;
+    if (s.y < 15 || s.y > H - 15) s.vy *= -1;
+    if (dist(s, moth) < 17 && moth.invuln <= 0) { hurt(); return; }
+  }
+  // Pollen
+  for (const p of pollen) if (!p.got && dist(p, moth) < 18) {
+    p.got = true; score += 10 * level; burst(p.x, p.y, '#ffd84d', 14);
+  }
+  if (pollen.every(p => p.got)) {
+    score += 50 * level; level++; buildLevel(); flash('Level ' + level + (level % 2 === 0 ? ' — spiders arrive' : ''));
+  }
+}
+
+function glow(x, y, r, col, a = 1) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1;
+}
+
+function drawMoth() {
+  if (moth.invuln > 0 && Math.floor(t * 12) % 2) return;
+  ctx.save(); ctx.translate(moth.x, moth.y); ctx.rotate(moth.a + Math.PI / 2);
+  const flap = Math.sin(t * 40) * .5 + .6;
+  glow(0, 0, 26, '#c9b8ff', .5);
+  ctx.fillStyle = '#e8e0ff';
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.ellipse(s * 9 * flap, -2, 9 * flap + 2, 6, s * .5, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(s * 7 * flap, 6, 6 * flap + 1, 4, -s * .5, 0, 6.283); ctx.fill();
+  }
+  ctx.fillStyle = '#7a63c7'; ctx.beginPath(); ctx.ellipse(0, 1, 3, 8, 0, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  // Lamp light pools
+  for (const l of lamps || []) if (l.lit) glow(l.x, l.y, 190, 'rgba(255,220,130,.28)');
+  // Pollen
+  for (const p of pollen || []) if (!p.got) {
+    glow(p.x, p.y, 20, '#ffd84d', .6 + Math.sin(t * 4 + p.x) * .2);
+    ctx.fillStyle = '#ffe680'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 6.283); ctx.fill();
+  }
+  // Zappers
+  for (const z of zappers || []) {
+    glow(z.x, z.y, z.r * 2, '#4cc9ff', .45);
+    ctx.strokeStyle = '#8fe3ff'; ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const a = z.ph + t * 3 + i * 1.047, r = z.r * (.6 + .4 * Math.sin(t * 9 + i));
+      ctx.beginPath(); ctx.moveTo(z.x, z.y); ctx.lineTo(z.x + Math.cos(a) * r, z.y + Math.sin(a) * r); ctx.stroke();
+    }
+    ctx.fillStyle = '#d9f6ff'; ctx.beginPath(); ctx.arc(z.x, z.y, 6, 0, 6.283); ctx.fill();
+  }
+  // Spiders
+  for (const s of spiders || []) {
+    ctx.strokeStyle = '#8b2f4b'; ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const a = i * .785 + Math.sin(t * 8 + i) * .15;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + Math.cos(a) * 16, s.y + Math.sin(a) * 16); ctx.stroke();
+    }
+    ctx.fillStyle = '#e0486f'; ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillRect(s.x - 4, s.y - 3, 2, 2); ctx.fillRect(s.x + 2, s.y - 3, 2, 2);
+  }
+  // Lamps
+  (lamps || []).forEach((l, i) => {
+    ctx.strokeStyle = '#3a355e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(l.x, l.y + 8); ctx.lineTo(l.x, l.y + 24); ctx.stroke();
+    if (l.lit) glow(l.x, l.y, 60, '#fff0b0', .9);
+    ctx.fillStyle = l.lit ? '#fff3c4' : '#2c2850'; ctx.strokeStyle = l.lit ? '#ffd36b' : '#5a5390'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(l.x, l.y, 11, 0, 6.283); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#7e78b8'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(i + 1, l.x, l.y + 38);
+  });
+  if (moth) drawMoth();
+  for (const p of parts) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col; ctx.fillRect(p.x, p.y, 3, 3); }
+  ctx.globalAlpha = 1;
+
+  // HUD
+  ctx.textAlign = 'left'; ctx.fillStyle = '#cfd3ff'; ctx.font = 'bold 18px system-ui';
+  ctx.fillText('Score ' + score, 16, 28); ctx.fillText('Level ' + level, 150, 28);
+  ctx.fillStyle = '#ff8aa8'; ctx.fillText('♥'.repeat(Math.max(lives, 0)), 260, 28);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#7e78b8'; ctx.font = '14px system-ui';
+  ctx.fillText('Best ' + best + '   ·   max ' + MAX_LIT + ' lamps lit', W - 16, 28);
+  if (msgT > 0 && state === 'play') { ctx.globalAlpha = Math.min(1, msgT); ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a0'; ctx.font = 'bold 22px system-ui'; ctx.fillText(msg, W / 2, 70); ctx.globalAlpha = 1; }
+
+  if (state !== 'play') {
+    ctx.fillStyle = 'rgba(7,6,15,.78)'; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a0'; ctx.font = 'bold 54px system-ui';
+    ctx.fillText(state === 'title' ? 'Moth Maestro' : 'Lights Out', W / 2, 200);
+    ctx.font = '19px system-ui'; ctx.fillStyle = '#cfd3ff';
+    const lines = state === 'title'
+      ? ['You can\'t steer the moth — it flies to whatever lamps are lit.', 'Click lamps (or press 1–8) to switch them on/off. Only 2 can burn at once.', 'Collect all pollen. Avoid zappers, spiders, and the lamp bulbs themselves.']
+      : ['Final score: ' + score + (score >= best && score > 0 ? '  — new best!' : ''), 'Reached level ' + level];
+    lines.forEach((s, i) => ctx.fillText(s, W / 2, 262 + i * 32));
+    ctx.fillStyle = '#ffd36b'; ctx.font = 'bold 22px system-ui';
+    ctx.fillText('Click or press Space to ' + (state === 'title' ? 'start' : 'play again'), W / 2, 420);
+  }
+}
+
+// Idle scene for the title screen
+lamps = []; pollen = []; zappers = []; spiders = []; moth = { x: -99, y: -99, a: 0, invuln: 0 };
+let last = performance.now();
+(function loop(now) {
+  const dt = Math.min(.033, (now - last) / 1000); last = now;
+  update(dt); draw(); requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>

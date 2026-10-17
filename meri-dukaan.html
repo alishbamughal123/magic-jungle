@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meri Dukaan</title>
+<style>
+  :root{--g:#0b6b3a;--g2:#e8f5ec;--y:#f7c948;--r:#c0392b;--ink:#1d2a22;--bg:#f6f3ea}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Arial,sans-serif;line-height:1.4}
+  header{background:var(--g);color:#fff;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:20px;flex:1}
+  .pill{background:#ffffff26;padding:4px 12px;border-radius:99px;font-weight:600}
+  main{max-width:900px;margin:0 auto;padding:14px}
+  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+  .event{background:#fff8dc;border-left:6px solid var(--y)}
+  h2{margin:0 0 8px;font-size:18px}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:12px;text-align:left;color:#6a776f;padding:4px}
+  td{padding:6px 4px;border-top:1px solid #eee;vertical-align:middle;font-size:15px}
+  .step{display:inline-flex;align-items:center;gap:4px}
+  .step button{width:28px;height:28px;border-radius:8px;border:1px solid #bbb;background:#fafafa;font-size:16px;cursor:pointer}
+  .step b{min-width:34px;text-align:center}
+  .btn{background:var(--g);color:#fff;border:0;border-radius:12px;padding:12px 22px;font-size:17px;font-weight:700;cursor:pointer}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.alt{background:var(--y);color:#222}
+  .good{color:var(--g);font-weight:700}.bad{color:var(--r);font-weight:700}
+  .tip{background:var(--g2);border-radius:10px;padding:10px;margin:6px 0}
+  .quiz input{font-size:18px;padding:8px;width:130px;border:2px solid #bbb;border-radius:8px}
+  .muted{color:#6a776f;font-size:13px}
+  .big{font-size:42px;margin:0}
+  .center{text-align:center}
+  @media(max-width:620px){td,th{font-size:13px}.hide-s{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏪 Meri Dukaan <span class="muted" style="color:#cfe">— Kiryana Store Game</span></h1>
+  <span class="pill" id="hDay"></span><span class="pill" id="hCash"></span>
+</header>
+<main id="app"></main>
+
+<script>
+const DAYS = 15, START_CASH = 5000, RENT = 300;
+const ITEMS = [
+  {id:'doodh',  n:'Doodh (1 litre)',    e:'🥛', base:200, perish:true,  dem:14, step:5},
+  {id:'anda',   n:'Anda (1 adad)',      e:'🥚', base:30,  perish:true,  dem:32, step:12},
+  {id:'roti',   n:'Double Roti',        e:'🍞', base:150, perish:true,  dem:12, step:5},
+  {id:'chawal', n:'Chawal (1 kg)',      e:'🍚', base:300, perish:false, dem:8,  step:5},
+  {id:'cheeni', n:'Cheeni (1 kg)',      e:'🍬', base:160, perish:false, dem:10, step:5},
+  {id:'biscuit',n:'Biscuit pack',       e:'🍪', base:40,  perish:false, dem:26, step:10},
+  {id:'chai',   n:'Chai Patti (250g)',  e:'☕', base:250, perish:false, dem:6,  step:3},
+];
+const EVENTS = [
+  {t:'Aam din', e:'🌤️', d:'Aam sa din hai. Roz jaisi bikri hogi.', all:1, m:{}},
+  {t:'Barish', e:'🌧️', d:'Barish ho rahi hai. Log chai-biscuit zyada lenge, baqi kam nikalenge.', all:.8, m:{chai:1.9,biscuit:1.4}},
+  {t:'Ramzan ki tayyari', e:'🌙', d:'Ramzan qareeb hai! Doodh, cheeni aur chawal ki demand barh gayi.', all:1, m:{doodh:1.8,cheeni:1.7,chawal:1.4}},
+  {t:'Shaadi ka season', e:'💒', d:'Mohalle me shaadi hai. Chawal aur cheeni zyada bikenge.', all:1, m:{chawal:2,cheeni:1.5,chai:1.4}},
+  {t:'Tankhwah ka din', e:'💰', d:'Mahine ki pehli tareekh — log khareedari karne aaye hain.', all:1.35, m:{}},
+  {t:'Hartal / Strike', e:'🚧', d:'Bazaar band hai, gahak bohat kam aayenge.', all:.45, m:{}},
+];
+
+let S, best = +(localStorage.dukaanBest || 0);
+const R = (a,b)=>a+Math.random()*(b-a);
+const RI = (a,b)=>Math.floor(R(a,b+1));
+const Rs = n => 'Rs ' + Math.round(n).toLocaleString('en-US');
+const $ = id => document.getElementById(id);
+
+function newGame(){
+  S = {day:0, cash:START_CASH, inv:{}, price:{}, phase:'morning', qOK:0, qN:0, profit:0};
+  ITEMS.forEach(i=>{ S.inv[i.id]={q:0,c:0}; S.price[i.id]=i.base; });
+  startDay();
+}
+
+function startDay(){
+  S.day++;
+  S.mandi={}; S.buy={};
+  ITEMS.forEach(i=>{ S.mandi[i.id]=Math.round(i.base*.8*R(.9,1.2)); S.buy[i.id]=0; });
+  S.event = S.day===1 ? EVENTS[0] : EVENTS[RI(0,EVENTS.length-1)];
+  S.quiz = makeQuiz(); S.qAns=''; S.qDone=false; S.qMsg='';
+  S.phase='morning'; render();
+}
+
+function makeQuiz(){
+  const k=RI(0,3), it=ITEMS[RI(0,ITEMS.length-1)];
+  if(k===0){ const c=Math.round(it.base*.8), p=it.base, n=RI(3,12);
+    return {q:`Aap ne ${it.n} Rs ${c} me khareeda aur Rs ${p} me becha. ${n} adad bechne pe kul nafa kitna hoga?`, a:(p-c)*n, why:`Nafa = (becha − khareeda) × adad = (${p} − ${c}) × ${n} = ${(p-c)*n}`}; }
+  if(k===1){ const x=RI(2,15)*100, p=[10,20,25,50][RI(0,3)];
+    return {q:`Ek cheez ki qeemat Rs ${x} hai. Us pe ${p}% discount mile to nai qeemat kitni hogi?`, a:x-x*p/100, why:`${p}% of ${x} = ${x*p/100}. Nai qeemat = ${x} − ${x*p/100} = ${x-x*p/100}`}; }
+  if(k===2){ const bill=RI(3,19)*10+RI(0,1)*5, pay=Math.ceil((bill+1)/100)*100;
+    return {q:`Gahak ka bill Rs ${bill} bana. Us ne Rs ${pay} ka note diya. Wapas kitne paise dene hain?`, a:pay-bill, why:`Wapsi = ${pay} − ${bill} = ${pay-bill}`}; }
+  const n=RI(3,9), p=it.base;
+  return {q:`${n} × ${it.n}, har ek Rs ${p} ka. Kul bill kitna banega?`, a:n*p, why:`${n} × ${p} = ${n*p}`};
+}
+
+function totalBuy(){ return ITEMS.reduce((s,i)=>s+S.buy[i.id]*S.mandi[i.id],0); }
+
+function render(){
+  $('hDay').textContent = `Din ${Math.min(S.day,DAYS)} / ${DAYS}`;
+  $('hCash').textContent = 'Cash: ' + Rs(S.cash);
+  const app=$('app');
+  if(S.phase==='morning') app.innerHTML = morningHTML();
+  else if(S.phase==='report') app.innerHTML = reportHTML();
+  else app.innerHTML = endHTML();
+  const inp=$('qa'); if(inp){ inp.value=S.qAns; inp.oninput=()=>S.qAns=inp.value; inp.onkeydown=e=>{if(e.key==='Enter')answer();}; }
+}
+
+function morningHTML(){
+  const ev=S.event;
+  let rows = ITEMS.map(i=>{
+    const m=S.mandi[i.id], p=S.price[i.id], st=S.inv[i.id].q, margin=(p-m)/m*100;
+    return `<tr>
+      <td>${i.e} <b>${i.n}</b>${i.perish?' <span class="muted" title="Agle din kharab">⏳</span>':''}</td>
+      <td>${Rs(m)}</td>
+      <td class="hide-s">${st}</td>
+      <td><span class="step"><button onclick="buy('${i.id}',-1)">−</button><b>${S.buy[i.id]}</b><button onclick="buy('${i.id}',1)">+</button></span></td>
+      <td><span class="step"><button onclick="pr('${i.id}',-5)">−</button><b>${p}</b><button onclick="pr('${i.id}',5)">+</button></span></td>
+      <td class="${margin<0?'bad':'good'} hide-s">${margin>=0?'+':''}${margin.toFixed(0)}%</td>
+    </tr>`;}).join('');
+  const q=S.quiz;
+  const quiz = S.qDone
+    ? `<div class="tip">${S.qMsg}</div>`
+    : `<p>${q.q}</p><input id="qa" type="number" inputmode="numeric" placeholder="Jawab"> <button class="btn alt" onclick="answer()">Jawab do</button>`;
+  return `
+  <div class="card event"><h2>${ev.e} Aaj ki khabar: ${ev.t}</h2>${ev.d}</div>
+  <div class="card"><h2>🛒 Subah — Mandi se maal khareedo aur apni qeemat tay karo</h2>
+   <table><tr><th>Cheez</th><th>Mandi rate</th><th class="hide-s">Stock</th><th>Kitna khareedna</th><th>Meri qeemat</th><th class="hide-s">Nafa %</th></tr>${rows}</table>
+   <p>Aaj ki kharidari: <b>${Rs(totalBuy())}</b> &nbsp;|&nbsp; Kiraya dukaan: <b>${Rs(RENT)}</b> (roz lagta hai)</p>
+   <p class="muted">⏳ = doodh, anday, roti agle din kharab ho jate hain — bachay to nuqsan! Chawal, cheeni, chai, biscuit bach sakte hain.<br>
+   Tip: Nafa % = (apni qeemat − mandi rate) ÷ mandi rate × 100. Bazaar me log zyada mehngi cheez nahi lete.</p>
+   <button class="btn" onclick="openShop()">🔓 Dukaan kholo</button></div>
+  <div class="card quiz"><h2>🧮 Aaj ka hisaab ka sawal (sahi jawab pe Rs 100 inaam)</h2>${quiz}</div>`;
+}
+
+function buy(id,dir){
+  const it=ITEMS.find(x=>x.id===id), n=S.buy[id]+dir*it.step;
+  if(n<0) return;
+  if(dir>0 && totalBuy()+it.step*S.mandi[id] > S.cash) return;
+  S.buy[id]=n; render();
+}
+function pr(id,d){ S.price[id]=Math.max(5,S.price[id]+d); render(); }
+
+function answer(){
+  if(S.qDone||S.qAns==='') return;
+  S.qN++; S.qDone=true;
+  if(Math.abs(+S.qAns - S.quiz.a)<0.01){ S.qOK++; S.cash+=100; S.qMsg=`✅ Bilkul sahi! Rs 100 inaam mila.<br><span class="muted">${S.quiz.why}</span>`; }
+  else S.qMsg=`❌ Ghalat. Sahi jawab: <b>${S.quiz.a}</b><br><span class="muted">${S.quiz.why}</span>`;
+  render();
+}
+
+function openShop(){
+  const spend=totalBuy(); S.cash-=spend;
+  ITEMS.forEach(i=>{ const inv=S.inv[i.id], b=S.buy[i.id];
+    if(b>0){ inv.c=(inv.c*inv.q + b*S.mandi[i.id])/(inv.q+b); inv.q+=b; } });
+  let revenue=0,cogs=0,waste=0,missed=0,hiPrice=0; const lines=[];
+  ITEMS.forEach(i=>{
+    const inv=S.inv[i.id], p=S.price[i.id], fair=i.base;
+    const demand=Math.max(0,Math.round(i.dem*S.event.all*(S.event.m[i.id]||1)*Math.pow(fair/p,2)*R(.85,1.15)));
+    const sold=Math.min(inv.q,demand), rev=sold*p, cost=sold*inv.c;
+    inv.q-=sold; revenue+=rev; cogs+=cost;
+    if(demand>sold) missed+=(demand-sold)*Math.max(0,p-inv.c);
+    if(p>fair*1.25 && demand<i.dem*.6) hiPrice++;
+    let w=0; if(i.perish && inv.q>0){ w=inv.q*inv.c; waste+=w; lines.push(`${i.e} ${i.n}: ${inv.q} bach gaye aur kharab ho gaye`); inv.q=0; }
+    lines.push(null);
+    S._l = S._l||[];
+    inv.sold=sold; inv.rev=rev; inv.demand=demand; inv.waste=w;
+  });
+  S.cash+=revenue-RENT;
+  const profit=revenue-cogs-waste-RENT; S.profit+=profit;
+  const tips=[];
+  if(waste>0) tips.push(`🗑️ Aap ne ${Rs(waste)} ka maal zaya kar diya. <b>Sabaq:</b> jaldi kharab hone wali cheezein sirf utni khareedo jitni bik sakein.`);
+  if(missed>150) tips.push(`😕 Maal khatam hone se aap ne taqreeban ${Rs(missed)} ka nafa kho diya. <b>Sabaq:</b> bohat kam stock bhi nuqsan hai — demand ka andaza lagao.`);
+  if(hiPrice>0) tips.push(`💸 Kuch cheezein bohat mehngi rakhi thin, isliye gahak kam aaye. <b>Sabaq:</b> zyada qeemat = kam gahak.`);
+  if(cogs>0 && (revenue-cogs)/cogs<.05) tips.push(`📉 Nafa bohat kam raha. <b>Sabaq:</b> qeemat itni rakho ke mandi rate se upar achha nafa bache, magar gahak na bhagein.`);
+  if(profit>800) tips.push(`🌟 Shabash! Aaj ka nafa achha raha. Aap ne maal aur qeemat dono sahi rakhi.`);
+  if(!tips.length) tips.push(`👍 Theek din raha. Agle din qeemat thori badal ke dekho — kya bikri barhti hai?`);
+  S.report={revenue,cogs,waste,spend,profit,tips:tips.slice(0,3)};
+  S.phase='report'; render();
+}
+
+function reportHTML(){
+  const r=S.report;
+  const rows=ITEMS.map(i=>{const v=S.inv[i.id];return `<tr><td>${i.e} ${i.n}</td><td>${v.demand}</td><td>${v.sold}</td><td>${Rs(v.rev)}</td></tr>`}).join('');
+  return `<div class="card"><h2>🌙 Shaam — Din ${S.day} ka hisaab</h2>
+   <table><tr><th>Cheez</th><th>Gahak chahte the</th><th>Bika</th><th>Aamdani</th></tr>${rows}</table>
+   <hr>
+   <p>Kul bikri: <b>${Rs(r.revenue)}</b><br>Bike hue maal ki laagat: ${Rs(r.cogs)}<br>Zaya hua maal: <span class="bad">${Rs(r.waste)}</span><br>Kiraya: ${Rs(RENT)}</p>
+   <p style="font-size:20px">Aaj ka ${r.profit>=0?'nafa':'nuqsan'}: <span class="${r.profit>=0?'good':'bad'}">${Rs(Math.abs(r.profit))}</span></p>
+   ${r.tips.map(t=>`<div class="tip">${t}</div>`).join('')}
+   <button class="btn" onclick="nextDay()">${S.day>=DAYS||S.cash<0?'Nateeja dekho':'Agla din ▶'}</button></div>`;
+}
+
+function nextDay(){ if(S.day>=DAYS||S.cash<0){ S.phase='end'; const f=S.cash-START_CASH; if(f>best){best=f;try{localStorage.dukaanBest=best}catch(e){}} render(); } else startDay(); }
+
+function endHTML(){
+  const gain=S.cash-START_CASH;
+  const [g,t]= S.cash<0 ? ['😢','Dukaan band ho gayi'] : gain>=6000?['🏆','Business Star! Aap kamyab tajir hain'] : gain>=2500?['⭐','Bohat achhe dukaandar'] : gain>=0?['🙂','Guzara — thori mehnat aur chahiye'] : ['📉','Nuqsan — dobara koshish karo'];
+  return `<div class="card center"><p class="big">${g}</p><h2>${t}</h2>
+   <p>Shuru me: ${Rs(START_CASH)} → Ab: <b>${Rs(S.cash)}</b><br>
+   Kul ${gain>=0?'nafa':'nuqsan'}: <span class="${gain>=0?'good':'bad'}">${Rs(Math.abs(gain))}</span><br>
+   Hisaab ke sawal: ${S.qOK} / ${S.qN} sahi<br><span class="muted">Ab tak ka behtareen nafa: ${Rs(best)}</span></p>
+   <div style="text-align:left"><h2>📘 Aap ne kya seekha</h2>
+   <div class="tip"><b>Nafa = Bikri − Laagat.</b> Sirf bikri dekhna kaafi nahi, laagat aur kiraya bhi nikalte hain.</div>
+   <div class="tip"><b>Qeemat ka tawazun:</b> bohat mehngi to gahak nahi, bohat sasti to nafa nahi.</div>
+   <div class="tip"><b>Stock ka andaza:</b> zyada khareeda to kharab hua, kam khareeda to bikri gayi.</div>
+   <div class="tip"><b>Halaat dekho:</b> barish, Ramzan, shaadi, hartal — har cheez demand badalti hai.</div>
+   <div class="tip"><b>Percent aur hisaab:</b> discount, wapsi ke paise, bill — roz ki zindagi me kaam aate hain.</div></div>
+   <button class="btn" onclick="newGame()">🔄 Dobara khelo</button></div>`;
+}
+
+newGame();
+</script>
+</body>
+</html>

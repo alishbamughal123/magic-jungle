@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Magic Jungle</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{margin:0;height:100dvh;overflow:hidden;font-family:"Comic Sans MS","Baloo 2",system-ui,sans-serif;color:#3b2a14}
+  html[lang=ur] body{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaleeq","Urdu Typesetting","Segoe UI",Tahoma,sans-serif}
+  html[lang=ur] .bubble,html[lang=ur] .sub,html[lang=ur] .sticker{line-height:1.9}
+  html[lang=ur] .big,html[lang=ur] .chip{line-height:1.4}
+  body{background:linear-gradient(#7fd3ff 0%,#c9efff 55%,#fff6c9 100%)}
+  /* scenery */
+  .sun{position:fixed;top:4vh;right:6vw;width:90px;height:90px;border-radius:50%;background:radial-gradient(#fff7a8,#ffd23f);box-shadow:0 0 60px 20px #ffe58a;animation:pulse 4s ease-in-out infinite}
+  .cloud{position:fixed;font-size:70px;opacity:.9;animation:drift linear infinite}
+  .hill{position:fixed;bottom:-8vh;border-radius:50%;z-index:0}
+  .h1{left:-10vw;width:70vw;height:38vh;background:#7ed957}
+  .h2{right:-15vw;width:80vw;height:32vh;background:#5ec44a}
+  @keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(110vw)}}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  @keyframes bob{50%{transform:translateY(-8px)}}
+  @keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+  @keyframes shake{25%{transform:translateX(-14px) rotate(-6deg)}75%{transform:translateX(14px) rotate(6deg)}}
+  @keyframes dance{25%{transform:rotate(-12deg) scale(1.1)}75%{transform:rotate(12deg) scale(1.1)}}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  /* layout */
+  #app{position:relative;z-index:2;height:100dvh;display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .top{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:8px}
+  .chip{background:#fff;border-radius:99px;padding:8px 16px;font-size:22px;font-weight:800;box-shadow:0 4px 0 #0002;cursor:pointer;min-height:44px;display:flex;align-items:center;white-space:nowrap}
+  .stage{flex:1;width:100%;max-width:820px;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;padding:6px 12px 20px;overflow:auto;-webkit-overflow-scrolling:touch}
+  h1{margin:0;font-size:clamp(34px,8vw,64px);color:#fff;text-shadow:0 5px 0 #e0762f,0 8px 12px #0003;text-align:center;line-height:1.4}
+  .sub{font-size:clamp(16px,3.5vw,22px);font-weight:700;color:#7a4b12;text-align:center}
+  .menu{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%}
+  .big{border:0;border-radius:28px;padding:16px 20px;min-width:180px;font-family:inherit;font-weight:800;font-size:clamp(20px,4.6vw,28px);color:#fff;cursor:pointer;box-shadow:0 8px 0 #0003;transition:transform .1s;touch-action:manipulation}
+  .menu .big{flex:1 1 180px;max-width:300px}
+  .big:active{transform:translateY(6px);box-shadow:0 2px 0 #0003}
+  .big small{display:block;font-size:.55em;font-weight:700;opacity:.95}
+  .c1{background:#ff6b6b}.c2{background:#a66cff}.c3{background:#2bb673}.c4{background:#ffa41b}
+  .c5{background:#1e88e5}.c6{background:#e91e8c}.c7{background:#00acc1}.c8{background:#7cb342}.c9{background:#8d6e63}
+  .animal{font-size:clamp(70px,16vw,120px);animation:bob 2s ease-in-out infinite;line-height:1}
+  .animal.shake{animation:shake .5s}.animal.dance{animation:dance .6s infinite}
+  .bubble{background:#fff;border-radius:24px;padding:12px 20px;font-size:clamp(20px,4.6vw,30px);font-weight:800;text-align:center;box-shadow:0 5px 0 #0002;position:relative;max-width:96%}
+  .bubble b{color:#e0562f;font-size:1.5em}
+  .bubble .hint{font-size:.65em}
+  .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%}
+  .fruit{font-size:clamp(40px,10vw,64px);background:none;border:0;cursor:pointer;animation:bob 1.8s ease-in-out infinite;padding:2px;touch-action:manipulation}
+  .fruit:nth-child(2n){animation-delay:.4s}.fruit:nth-child(3n){animation-delay:.8s}
+  .plate{background:#fff;border:6px dashed #ffb347;border-radius:30px;min-height:90px;min-width:260px;width:90%;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;padding:8px;font-size:clamp(32px,8vw,48px)}
+  .plate span{animation:pop .3s}
+  .count{font-size:clamp(30px,8vw,48px);font-weight:800;color:#e0562f;min-height:1.2em}
+  .go{background:#2bb673}.redo{background:#ff7a59}
+  .pots{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .pot{width:clamp(64px,18vw,92px);height:clamp(64px,18vw,92px);border-radius:50%;border:6px solid #fff;box-shadow:0 6px 0 #0003;cursor:pointer;transition:transform .15s;touch-action:manipulation}
+  .pot.sel{transform:scale(1.2) translateY(-8px);border-color:#ffd23f}
+  .bowl{width:clamp(110px,28vw,150px);height:clamp(110px,28vw,150px);border-radius:50%;border:8px solid #fff;box-shadow:0 8px 0 #0003;background:#eee;transition:background .5s;display:flex;align-items:center;justify-content:center;font-size:40px}
+  .opts{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .opt{width:clamp(80px,22vw,110px);height:clamp(80px,22vw,110px);border-radius:26px;border:0;font-family:inherit;font-weight:800;font-size:clamp(38px,10vw,56px);color:#fff;cursor:pointer;box-shadow:0 8px 0 #0003;touch-action:manipulation;transition:opacity .2s,transform .2s}
+  .opt.wide{width:auto;min-width:clamp(100px,26vw,140px);padding:8px 18px;font-size:clamp(22px,5.4vw,32px)}
+  .opt.sw{border:5px solid #0002}
+  .opt:active{transform:translateY(6px);box-shadow:0 2px 0 #0003}
+  .opt.bad{opacity:.25;transform:scale(.88);pointer-events:none}
+  .vis{background:#fff;border-radius:24px;padding:6px 18px;font-size:clamp(34px,8vw,50px);font-weight:800;text-align:center;box-shadow:0 5px 0 #0002;max-width:96%;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;color:#e0562f}
+  .dot{display:inline-block;width:1.1em;height:1.1em;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 0 #0003;vertical-align:middle}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;width:100%}
+  .sticker{background:#fff;border-radius:22px;padding:10px;text-align:center;box-shadow:0 5px 0 #0002;font-weight:800}
+  .sticker .e{font-size:60px;display:block;line-height:1.2}.sticker.lock .e{filter:grayscale(1) brightness(0) opacity(.25)}
+  .overlay{position:fixed;inset:0;background:#0006;z-index:20;display:flex;align-items:center;justify-content:center;padding:12px}
+  .modal{background:#fff;border-radius:34px;padding:22px 26px;text-align:center;max-width:90%;max-height:92dvh;overflow:auto;animation:pop .4s}
+  .modal h2{margin:0 0 6px;font-size:clamp(28px,7vw,44px);color:#e0562f}
+  .confetti{position:fixed;top:-60px;z-index:30;font-size:34px;animation:fall linear forwards;pointer-events:none}
+
+  /* ---- responsive ---- */
+  @media(min-width:900px){
+    .stage{max-width:980px;gap:18px}
+    .animal{font-size:130px}
+    .fruit{font-size:72px}
+    .plate{max-width:640px}
+    .sun{width:120px;height:120px}
+  }
+  @media(max-width:420px){
+    .chip{font-size:16px;padding:6px 10px}
+    .menu{gap:10px}
+    .menu .big{min-width:0;flex:1 1 140px;padding:14px 10px}
+    .sun{width:60px;height:60px}
+    .cloud{font-size:44px!important}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+    .plate{min-width:0;border-width:4px}
+  }
+  @media(max-height:520px){
+    .top{padding:4px 10px}
+    .stage{gap:6px;padding-bottom:10px}
+    .animal{font-size:56px}
+    h1{font-size:32px}
+    .sub{display:none}
+    .bubble{padding:6px 14px;font-size:18px}
+    .fruit{font-size:36px}
+    .plate{min-height:56px;font-size:30px;border-width:4px}
+    .count{font-size:24px;min-height:1em}
+    .big{padding:8px 16px;font-size:20px;border-radius:20px}
+    .big small{display:none}
+    .opt{width:70px;height:70px;font-size:34px}
+    .opt.wide{width:auto;height:auto;font-size:20px}
+    .vis{font-size:28px}
+    .pot{width:54px;height:54px}
+    .bowl{width:84px;height:84px}
+    .sun,.cloud{display:none}
+    .modal{padding:12px 18px}
+    .modal .animal{font-size:56px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="sun"></div>
+<div class="cloud" style="top:8vh;animation-duration:70s">☁️</div>
+<div class="cloud" style="top:20vh;animation-duration:100s;animation-delay:-40s;font-size:50px">☁️</div>
+<div class="hill h1"></div><div class="hill h2"></div>
+<div id="app"></div>
+
+<script>
+/* ---------- language data (English + Urdu only) ---------- */
+const ANIMALS=[
+ {e:'🦁',en:'Lion',ur:'شیر'},{e:'🐘',en:'Elephant',ur:'ہاتھی'},{e:'🦜',en:'Parrot',ur:'طوطا'},
+ {e:'🐒',en:'Monkey',ur:'بندر'},{e:'🐱',en:'Cat',ur:'بلی'},{e:'🦚',en:'Peacock',ur:'مور'},
+ {e:'🦓',en:'Zebra',ur:'زیبرا'},{e:'🐪',en:'Camel',ur:'اونٹ'},{e:'🐐',en:'Goat',ur:'بکری'},{e:'🐢',en:'Turtle',ur:'کچھوا'}];
+const FRUITS=['🍎','🍌','🍊','🍇','🍉','🥭'];
+const COUNTOBJ=['🍎','🍌','🍊','🍇','🍉','🥭','🍓','🍋','⭐','🎈','🐟','🌸'];
+const NUM={en:['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'],
+           ur:['','ایک','دو','تین','چار','پانچ','چھ','سات','آٹھ','نو','دس']};
+const NUMU=['','ایک','دو','تین','چار','پانچ','چھ','سات','آٹھ','نو','دس','گیارہ','بارہ','تیرہ','چودہ','پندرہ','سولہ','سترہ','اٹھارہ','انیس','بیس'];
+const POTS={red:'#e53935',yellow:'#fdd835',blue:'#1e88e5',white:'#ffffff'};
+const MIX={
+ 'red+yellow':['#fb8c00',{en:'Orange',ur:'نارنجی'},'🟠'],
+ 'blue+yellow':['#43a047',{en:'Green',ur:'ہرا'},'🟢'],
+ 'blue+red':['#8e24aa',{en:'Purple',ur:'جامنی'},'🟣'],
+ 'red+white':['#f8a5c2',{en:'Pink',ur:'گلابی'},'🩷'],
+ 'blue+white':['#81d4fa',{en:'Sky blue',ur:'آسمانی'},'🩵'],
+ 'white+yellow':['#fff59d',{en:'Light yellow',ur:'ہلکا پیلا'},'']};
+const SAME={red:['#e53935',{en:'Red',ur:'لال'}],yellow:['#fdd835',{en:'Yellow',ur:'پیلا'}],
+            blue:['#1e88e5',{en:'Blue',ur:'نیلا'}],white:['#ffffff',{en:'White',ur:'سفید'}]};
+const ODD=['#ccc',{en:'Strange colour',ur:'عجیب رنگ'}];
+const TARGETS=['red+yellow','blue+yellow','blue+red','red+white','blue+white'];
+/* colour palette for questions: [hex, en, ur] */
+const COLS=[
+ ['#e53935','Red','لال'],['#fdd835','Yellow','پیلا'],['#1e88e5','Blue','نیلا'],['#43a047','Green','ہرا'],
+ ['#fb8c00','Orange','نارنجی'],['#8e24aa','Purple','جامنی'],['#f8a5c2','Pink','گلابی'],['#ffffff','White','سفید'],
+ ['#212121','Black','کالا'],['#795548','Brown','بھورا'],['#9e9e9e','Grey','سلیٹی'],['#81d4fa','Sky blue','آسمانی']];
+const CI=n=>COLS.findIndex(c=>c[1]===n);
+const MIXCOL={'red+yellow':'Orange','blue+yellow':'Green','blue+red':'Purple','red+white':'Pink','blue+white':'Sky blue'};
+const COLOBJ=[['🍎','Red'],['🍌','Yellow'],['🌿','Green'],['🍊','Orange'],['🍇','Purple'],['🐘','Grey'],['🌊','Blue'],['🍫','Brown'],
+ ['🍅','Red'],['🥕','Orange'],['🥦','Green'],['🐻','Brown'],['🦇','Black'],['🍆','Purple'],['🍓','Red'],['🥒','Green'],
+ ['🍋','Yellow'],['🎃','Orange'],['🌻','Yellow'],['🌹','Red'],['🐸','Green'],['⛄','White'],['🥥','Brown'],['🌸','Pink'],
+ ['🐷','Pink'],['🐳','Blue'],['🕷️','Black'],['🥛','White'],['🦢','White'],['🐭','Grey']];
+/* english alphabet */
+const W26=[['Apple','🍎'],['Ball','⚽'],['Cat','🐱'],['Dog','🐶'],['Elephant','🐘'],['Fish','🐟'],['Grapes','🍇'],['Hat','🎩'],
+ ['Ice cream','🍦'],['Jeep','🚙'],['Kite','🪁'],['Lion','🦁'],['Moon','🌙'],['Nose','👃'],['Orange','🍊'],['Parrot','🦜'],
+ ['Queen','👸'],['Rabbit','🐰'],['Sun','☀️'],['Tree','🌳'],['Umbrella','☂️'],['Van','🚐'],['Watch','⌚'],['X-ray','🩻'],
+ ['Yo-yo','🪀'],['Zebra','🦓']];
+const ABC='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const W3=[['CAT','🐱'],['DOG','🐶'],['SUN','☀️'],['HAT','🎩'],['PIG','🐷'],['BUS','🚌'],['CUP','☕'],['BED','🛏️'],['HEN','🐔'],
+ ['FOX','🦊'],['BAT','🦇'],['PEN','🖊️'],['NET','🥅'],['BOX','📦'],['WEB','🕸️'],['RAT','🐀']];
+/* urdu letters: [letter, word, emoji] */
+const U26=[['ا','اونٹ','🐪'],['ب','بطخ','🦆'],['پ','پتنگ','🪁'],['ت','تتلی','🦋'],['ٹ','ٹوپی','🧢'],['ج','جہاز','✈️'],
+ ['چ','چڑیا','🐦'],['خ','خرگوش','🐰'],['د','دل','❤️'],['ڈ','ڈھول','🥁'],['ر','رنگ','🎨'],['ز','زیبرا','🦓'],
+ ['س','سیب','🍎'],['ش','شیر','🦁'],['ص','صابن','🧼'],['ط','طوطا','🦜'],['ع','عقاب','🦅'],['غ','غبارہ','🎈'],
+ ['ف','فیل','🐘'],['ق','قلم','🖊️'],['ک','کتاب','📖'],['گ','گھوڑا','🐴'],['ل','لیمو','🍋'],['م','مچھلی','🐟'],
+ ['ن','ناشپاتی','🍐'],['ہ','ہرن','🦌']];
+const DAYS=['پیر','منگل','بدھ','جمعرات','جمعہ','ہفتہ','اتوار'];
+/* things: emoji, english, urdu */
+const THINGS=[['🍎','Apple','سیب'],['🍌','Banana','کیلا'],['🍊','Orange','مالٹا'],['🍇','Grapes','انگور'],['🍉','Watermelon','تربوز'],
+ ['🥭','Mango','آم'],['🍓','Strawberry','اسٹرابیری'],['🥕','Carrot','گاجر'],['🍅','Tomato','ٹماٹر'],['🥔','Potato','آلو'],
+ ['🌽','Corn','مکئی'],['🍋','Lemon','لیموں'],['🐶','Dog','کتا'],['🐱','Cat','بلی'],['🐮','Cow','گائے'],['🐴','Horse','گھوڑا'],
+ ['🐑','Sheep','بھیڑ'],['🐐','Goat','بکری'],['🐔','Hen','مرغی'],['🦆','Duck','بطخ'],['🐟','Fish','مچھلی'],['🦁','Lion','شیر'],
+ ['🐘','Elephant','ہاتھی'],['🐒','Monkey','بندر'],['🦜','Parrot','طوطا'],['🐰','Rabbit','خرگوش'],['🐪','Camel','اونٹ'],
+ ['🐢','Turtle','کچھوا'],['🦋','Butterfly','تتلی'],['🚗','Car','کار'],['✈️','Aeroplane','جہاز'],['🚲','Bicycle','سائیکل'],
+ ['🚌','Bus','بس'],['⚽','Ball','گیند'],['🌙','Moon','چاند'],['☀️','Sun','سورج'],['⭐','Star','ستارہ'],['🌳','Tree','درخت'],
+ ['🌸','Flower','پھول'],['📖','Book','کتاب'],['🖊️','Pen','قلم'],['⏰','Clock','گھڑی'],['🏠','House','گھر'],
+ ['🪁','Kite','پتنگ'],['🎈','Balloon','غبارہ']];
+const OPP=[['Big','Small','بڑا','چھوٹا'],['Hot','Cold','گرم','ٹھنڈا'],['Up','Down','اوپر','نیچے'],['Day','Night','دن','رات'],
+ ['Happy','Sad','خوش','اداس'],['Fast','Slow','تیز','آہستہ'],['Open','Closed','کھلا','بند'],['Hard','Soft','سخت','نرم'],
+ ['Heavy','Light','بھاری','ہلکا'],['Old','New','پرانا','نیا'],['Clean','Dirty','صاف','گندا'],['Full','Empty','بھرا','خالی'],
+ ['Wet','Dry','گیلا','سوکھا'],['Near','Far','قریب','دور'],['In','Out','اندر','باہر']];
+
+/* games shown on the home screen */
+const GAMES=[
+ {id:'count',ic:'🍎',c:'c1',en:'Counting',ur:'گنتی'},
+ {id:'color',ic:'🎨',c:'c2',en:'Colours',ur:'رنگ'},
+ {id:'add',ic:'➕',c:'c3',en:'Adding',ur:'جوڑو'},
+ {id:'sub',ic:'➖',c:'c4',en:'Taking away',ur:'گھٹاؤ'},
+ {id:'num',ic:'🔢',c:'c5',en:'Number Fun',ur:'نمبروں کا مزہ'},
+ {id:'abc',ic:'🔤',c:'c6',en:'ABC',ur:'ABC'},
+ {id:'urdu',ic:'🕌',c:'c7',en:'Urdu Letters',ur:'اردو حروف'},
+ {id:'words',ic:'📚',c:'c8',en:'Words',ur:'الفاظ'}];
+
+const TX={
+ title:{en:'Magic Jungle',ur:'جادوئی جنگل'},
+ sub:{en:'Feed the animals! Play and learn 🎉',ur:'جانوروں کی دعوت! کھیلو اور سیکھو 🎉'},
+ friends:{en:'My Friends',ur:'میرے دوست'},
+ feed:{en:'Feed ✅',ur:'کھلاؤ ✅'},
+ wantsCount:{en:(a,n,f)=>`${a} wants <b>${n}</b> ${f}!`, ur:(a,n,f)=>`${a} کو <b>${n}</b> ${f} چاہئیں!`},
+ needCount:{en:n=>`I need ${n}! Count again 😊`, ur:n=>`مجھے ${n} چاہئیں! دوبارہ گنو 😊`},
+ wantsColour:{en:(a,c,h,e)=>`${a} wants <b style="color:${h}">${c}</b>! ${e}`, ur:(a,c,h,e)=>`${a} کو <b style="color:${h}">${c}</b> رنگ چاہیے! ${e}`},
+ mixHint:{en:'Mix two colours 👇',ur:'دو رنگ ملاؤ 👇'},
+ madeColour:{en:c=>`That made ${c}! Try again 🎨`, ur:c=>`یہ تو ${c} بنا! پھر کوشش کرو 🎨`},
+ well:{en:'Well done!',ur:'شاباش!'}, newFriend:{en:'New friend!',ur:'نیا دوست ملا!'},
+ isFriend:{en:a=>`${a} is now your friend!`, ur:a=>`${a} اب آپ کا دوست ہے!`},
+ wonStar:{en:'You won a ⭐!',ur:'آپ نے ایک ⭐ جیتا!'},
+ next:{en:'Next ▶',ur:'آگے چلو ◀'},
+ album:{en:'My Jungle Friends 🐾',ur:'میرے جنگل کے دوست 🐾'},
+ albumSub:{en:'Every 3 ⭐ unlocks a new friend!',ur:'ہر 3 ⭐ پر ایک نیا دوست ملتا ہے!'},
+ langBtn:{en:'اردو',ur:'English'}
+};
+
+/* ---------- state ---------- */
+let stars=+(localStorage.jdStars||0), lang=localStorage.jdLang||'en', mode='', screen='home', cur={}, lastPos=-1;
+const app=document.getElementById('app');
+const R=n=>Math.floor(Math.random()*n), pick=a=>a[R(a.length)];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=R(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const sample=(pool,n,ex)=>shuf(pool.filter(x=>x!==ex)).slice(0,n);
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const P=(en,ur)=>lang==='ur'?ur:en;
+const unlocked=()=>Math.min(ANIMALS.length,1+Math.floor(stars/3));
+const save=()=>{try{localStorage.jdStars=stars;localStorage.jdLang=lang}catch(e){}};
+const t=(k,...a)=>{const v=TX[k][lang];return typeof v==='function'?v(...a):v};
+const nm=o=>o[lang];
+function setLang(l){lang=l;save();document.documentElement.lang=l;document.documentElement.dir=l==='ur'?'rtl':'ltr';document.title=t('title');}
+function toggleLang(){setLang(lang==='en'?'ur':'en');
+  if(screen==='album')album(); else if(!mode)home(); else next();}
+
+/* ---------- sound ---------- */
+let AC; function tone(f,d=.15,tm=0,type='sine',v=.2){try{
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+tm;
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.001,s+d);
+  o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+d);}catch(e){}}
+const sPop=n=>tone(300+n*60,.12,0,'triangle');
+const sWin=()=>[523,659,784,1047].forEach((f,i)=>tone(f,.25,i*.12,'triangle'));
+const sNo=()=>{tone(220,.2,0,'sawtooth',.12);tone(180,.25,.15,'sawtooth',.12)};
+/* speak in the chosen language; Urdu only if the device has an Urdu voice */
+function say(en,ur){try{
+  speechSynthesis.cancel();
+  let text=en,code='en-US';
+  if(lang==='ur'){
+    const has=speechSynthesis.getVoices().some(v=>v.lang.toLowerCase().startsWith('ur'));
+    if(!has||!ur)return; text=ur;code='ur-PK';
+  }
+  if(!text)return;
+  const u=new SpeechSynthesisUtterance(text);u.lang=code;u.rate=.9;u.pitch=1.3;speechSynthesis.speak(u);}catch(e){}}
+
+/* ---------- no-repeat question decks ----------
+   Every game has a big list of questions. They are shuffled like a pack of cards and dealt one by one,
+   so nothing comes back until the whole pack is used. The same answer is also never asked twice in a row. */
+const DECKS={};
+function deal(name,items,build){
+  let d=DECKS[name];
+  if(!d){d=DECKS[name]={bag:[],last:-1,sigs:[]};
+    try{const s=JSON.parse(localStorage['jdBag_'+name]||'null');
+      if(s&&s.n===items.length)d.bag=s.bag.filter(i=>i>=0&&i<items.length);}catch(e){}}
+  let q,i,tries=0;
+  for(;;){
+    if(!d.bag.length){d.bag=shuf([...items.keys()]);
+      if(d.bag.length>1&&d.bag[d.bag.length-1]===d.last)d.bag.unshift(d.bag.pop());}
+    i=d.bag.pop(); q=build(items[i]);
+    if(tries++<8&&d.bag.length&&d.sigs.includes(q.sig)){d.bag.unshift(i);continue}
+    break;
+  }
+  d.last=i; d.sigs=[q.sig,...d.sigs].slice(0,2);
+  try{localStorage['jdBag_'+name]=JSON.stringify({n:items.length,bag:d.bag})}catch(e){}
+  return q;
+}
+
+/* ---------- screens ---------- */
+function shell(inner,back=true){
+  app.innerHTML=`<div class="top">${back?'<div style="display:flex;gap:8px"><div class="chip" onclick="home()">🏠</div><div class="chip" onclick="picker()">🎮</div></div>':'<div></div>'}
+   <div class="chip" onclick="toggleLang()">🌐 ${t('langBtn')}</div>
+   <div class="chip" onclick="album()">⭐ ${stars} &nbsp;🐾 ${unlocked()}/${ANIMALS.length}</div></div>
+   <div class="stage">${inner}</div>`;
+}
+function home(){
+  mode='';screen='home';
+  shell(`<div class="animal">${ANIMALS[R(unlocked())].e}</div>
+   <h1>${t('title')}</h1><div class="sub">${t('sub')}</div>
+   <div class="menu">
+    ${GAMES.map(g=>`<button class="big ${g.c}" onclick="start('${g.id}')">${g.ic} ${g[lang]}</button>`).join('')}
+    <button class="big c9" onclick="album()">🐾 ${t('friends')}</button>
+   </div>`,false);
+}
+function start(m){mode=m;next();}
+/* quick switch to another game from inside a game */
+function picker(){
+  const o=document.createElement('div');o.className='overlay';
+  o.onclick=e=>{if(e.target===o)o.remove()};
+  o.innerHTML=`<div class="modal"><div class="menu">
+   ${GAMES.map(g=>`<button class="big ${g.c}" onclick="this.closest('.overlay').remove();start('${g.id}')">${g.ic} ${g[lang]}</button>`).join('')}
+   </div></div>`;
+  document.body.appendChild(o);
+}
+const RUN={count:()=>count(),color:()=>colour(),add:()=>quiz(qAdd()),sub:()=>quiz(qSub()),num:()=>quiz(qNum()),
+           abc:()=>quiz(qAbc()),urdu:()=>quiz(qUrdu()),words:()=>quiz(qWords())};
+function next(){screen='play'; RUN[mode]();}
+const animal=()=>ANIMALS[R(unlocked())];
+
+/* ---------- generic multiple-choice screen ---------- */
+const OPTC=['#ff6b6b','#a66cff','#2bb673','#ffa41b','#1e88e5','#e91e8c'];
+const lumFg=h=>{const n=parseInt(h.slice(1),16),r=n>>16,g=n>>8&255,b=n&255;return (r*299+g*587+b*114)/1000>150?'#3b2a14':'#fff'};
+function quiz(q){
+  screen='play'; const a=q.a||animal();
+  let o=q.opts.map(x=>({...x})),tries=0;
+  do{o=shuf(o);tries++}while(tries<8&&o.findIndex(x=>x.v===q.correct)===lastPos);
+  lastPos=o.findIndex(x=>x.v===q.correct);
+  const cs=shuf(OPTC);
+  o.forEach((x,i)=>{if(!x.bg)x.bg=cs[i%cs.length]});
+  cur={q,o,a};
+  shell(`<div class="animal" id="an">${a.e}</div><div class="bubble">${q.prompt}</div>
+   ${q.vis?`<div class="vis" dir="ltr">${q.vis}</div>`:''}
+   <div class="opts" dir="ltr">${o.map((x,i)=>`<button class="opt${x.wide?' wide':''}${x.sw?' sw':''}" style="background:${x.bg};${x.fg?'color:'+x.fg:''}" onclick="pickOpt(${i},this)">${x.h}</button>`).join('')}</div>`);
+  setTimeout(()=>say(q.en,q.ur),200);
+}
+function pickOpt(i,b){
+  if(cur.o[i].v===cur.q.correct)return win();
+  sNo(); b.classList.add('bad');
+  const el=document.getElementById('an'); if(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
+  say('Try again','دوبارہ کوشش کرو');
+}
+const numOpts=(vals)=>vals.map(v=>({v,h:v}));
+
+/* ---------- counting (120 questions) ---------- */
+const COUNT_ITEMS=range(1,10).flatMap(n=>COUNTOBJ.map(f=>({n,f})));
+function count(){
+  const q=deal('count',COUNT_ITEMS,it=>({sig:String(it.n),...it})), n=q.n, f=q.f, a=animal();
+  cur={t:n,taken:0,f,a};
+  const total=Math.min(14,n+2+R(3));
+  shell(`<div class="animal" id="an">${a.e}</div>
+   <div class="bubble">${t('wantsCount',nm(a),n,f)}<br><span class="hint">${n} • ${NUM[lang][n]}</span></div>
+   <div class="row" id="field">${Array.from({length:total},()=>`<button class="fruit" onclick="take(this)">${f}</button>`).join('')}</div>
+   <div class="count" id="cnt"></div>
+   <div class="plate" id="plate"></div>
+   <div class="menu"><button class="big go" onclick="feed()">${t('feed')}</button><button class="big redo" onclick="count()">🔄</button></div>`);
+  setTimeout(()=>say(`${a.en} wants ${n}`,`${a.ur} کو ${NUM.ur[n]} چاہئیں`),200);
+}
+function take(b){
+  b.style.visibility='hidden'; b.onclick=null; cur.taken++;
+  const s=document.createElement('span');s.textContent=cur.f;document.getElementById('plate').appendChild(s);
+  const k=cur.taken;
+  document.getElementById('cnt').textContent=k<=10?`${k} • ${NUM[lang][k]}`:k;
+  sPop(k);say(String(k),k<=10?NUM.ur[k]:String(k));
+}
+function feed(){ if(cur.taken===cur.t)win(); else{wrong(t('needCount',cur.t));setTimeout(count,1600);} }
+
+/* ---------- colours (110+ questions: mixing, naming, matching) ---------- */
+const COL_ITEMS=[
+  ...TARGETS.flatMap(k=>ANIMALS.map((_,ai)=>({t:'mix',k,ai}))),        // 50 interactive mixing
+  ...COLOBJ.map((_,i)=>({t:'obj',i})),                                  // 30 what colour is it
+  ...COLS.map((_,i)=>({t:'find',i})),                                   // 12 tap the named colour
+  ...COLS.map((_,i)=>({t:'name',i})),                                   // 12 name this colour
+  ...TARGETS.map(k=>({t:'res',k})), ...TARGETS.map(k=>({t:'pair',k}))   // 10 mixing questions
+];
+const dot=h=>`<span class="dot" style="background:${h}"></span>`;
+const swatchLang=i=>({v:i,h:lang==='ur'?COLS[i][2]:COLS[i][1],bg:COLS[i][0],fg:lumFg(COLS[i][0]),wide:true,sw:true});
+function colour(){
+  const it=deal('color',COL_ITEMS,x=>({sig:(x.t==='mix'?x.k:x.t+(x.i??x.k)),...x}));
+  if(it.t==='mix')return mixGame(it);
+  const cn=i=>P(COLS[i][1],COLS[i][2]), a=animal();
+  const ids=range(0,COLS.length-1);
+  if(it.t==='obj'){
+    const [e,cname]=COLOBJ[it.i], c=CI(cname);
+    return quiz({a,correct:c,vis:e,prompt:P('What colour is this?','یہ کس رنگ کا ہے؟'),
+      opts:[c,...sample(ids,2,c)].map(swatchLang),en:'What colour is this?',ur:'یہ کس رنگ کا ہے؟'});
+  }
+  if(it.t==='find'){
+    const c=it.i;
+    return quiz({a,correct:c,prompt:P(`Tap <b>${COLS[c][1]}</b>!`,`<b>${COLS[c][2]}</b> رنگ پر ٹچ کرو!`),
+      opts:[c,...sample(ids,2,c)].map(i=>({v:i,h:'',bg:COLS[i][0],sw:true})),en:`Tap ${COLS[c][1]}`,ur:`${COLS[c][2]} رنگ`});
+  }
+  if(it.t==='name'){
+    const c=it.i;
+    return quiz({a,correct:c,vis:dot(COLS[c][0]),prompt:P('What is this colour called?','اس رنگ کا نام کیا ہے؟'),
+      opts:[c,...sample(ids,2,c)].map(i=>({v:i,h:cn(i),wide:true})),en:'What colour is this?',ur:'یہ کون سا رنگ ہے؟'});
+  }
+  const [x,y]=it.k.split('+'), res=CI(MIXCOL[it.k]);
+  if(it.t==='res'){
+    return quiz({a,correct:res,vis:`${dot(POTS[x])} + ${dot(POTS[y])} = ?`,
+      prompt:P('Mix these two colours. What do we get?','یہ دو رنگ ملاؤ تو کیا بنے گا؟'),
+      opts:[res,...sample(ids,2,res)].map(swatchLang),en:'Mix two colours. What do we get?',ur:''});
+  }
+  /* pair: which two colours make X */
+  const ok=it.k, wrong2=sample(TARGETS,2,ok), r=COLS[res];
+  const pl=k=>{const [p,q2]=k.split('+');return `${dot(POTS[p])}+${dot(POTS[q2])}`};
+  return quiz({a,correct:ok,vis:dot(r[0]),prompt:P(`Which two colours make <b>${r[1]}</b>?`,`کون سے دو رنگ ملا کر <b>${r[2]}</b> بنتا ہے؟`),
+    opts:[ok,...wrong2].map(k=>({v:k,h:pl(k),wide:true,bg:'#fff'})),en:`Which two colours make ${r[1]}?`,ur:''});
+}
+function mixGame(it){
+  const m=MIX[it.k], a=ANIMALS[it.ai];
+  cur={key:it.k,m,sel:[],a};
+  shell(`<div class="animal" id="an">${a.e}</div>
+   <div class="bubble">${t('wantsColour',nm(a),nm(m[1]),m[0],m[2])}<br><span class="hint">${t('mixHint')}</span></div>
+   <div class="bowl" id="bowl"></div>
+   <div class="pots" dir="ltr">${Object.entries(POTS).map(([k,c])=>`<div class="pot" id="p_${k}" style="background:${c}" onclick="mix('${k}')"></div>`).join('')}</div>`);
+  setTimeout(()=>say(`Make ${m[1].en}`,`${m[1].ur} رنگ بناؤ`),200);
+}
+function mix(k){
+  sPop(2); cur.sel.push(k); document.getElementById('p_'+k).classList.add('sel');
+  if(cur.sel.length<2){document.getElementById('bowl').style.background=POTS[k];return;}
+  const [x,y]=cur.sel, key=[x,y].sort().join('+');
+  const res = x===y ? SAME[x] : (MIX[key]||ODD);
+  const bowl=document.getElementById('bowl'); bowl.style.background=res[0]; bowl.textContent='✨';
+  setTimeout(()=>{
+    if(key===cur.key) win();
+    else{ wrong(t('madeColour',nm(res[1]))); setTimeout(resetMix,1300); }
+  },700);
+}
+function resetMix(){ cur.sel=[]; document.querySelectorAll('.pot').forEach(p=>p.classList.remove('sel')); const b=document.getElementById('bowl'); if(b){b.style.background='#eee';b.textContent='';} }
+
+/* ---------- adding (270 questions) ---------- */
+const ADD_ITEMS=range(1,9).flatMap(x=>range(1,10-x).flatMap(y=>FRUITS.map(f=>({x,y,f}))));
+const near=(s,lo=0)=>sample(range(Math.max(lo,s-3),s+3),2,s);
+function qAdd(){
+  return deal('add',ADD_ITEMS,({x,y,f})=>{
+    const a=animal(), s=x+y;
+    return {sig:String(s),a,correct:s,opts:numOpts([s,...near(s,1)]),
+      prompt:P(`${a.en} has <b>${x}</b> ${f} and gets <b>${y}</b> more.<br>How many in all?`,`${a.ur} کے پاس <b>${x}</b> ${f} ہیں اور <b>${y}</b> مزید ملے۔<br>کل کتنے ہوئے؟`),
+      vis:`${f.repeat(x)} <span>+</span> ${f.repeat(y)} <span>= ?</span>`,
+      en:`${x} plus ${y}`,ur:`${NUM.ur[x]} جمع ${NUM.ur[y]}`};
+  });
+}
+/* ---------- taking away (45 x 6 = 270 questions) ---------- */
+const SUB_ITEMS=range(2,10).flatMap(x=>range(1,x-1).flatMap(y=>FRUITS.map(f=>({x,y,f}))));
+function qSub(){
+  return deal('sub',SUB_ITEMS,({x,y,f})=>{
+    const a=animal(), r=x-y;
+    return {sig:String(r),a,correct:r,opts:numOpts([r,...near(r,0)]),
+      prompt:P(`${a.en} had <b>${x}</b> ${f} and ate <b>${y}</b>.<br>How many are left?`,`${a.ur} کے پاس <b>${x}</b> ${f} تھے، <b>${y}</b> کھا لیے۔<br>کتنے بچے؟`),
+      vis:`${f.repeat(r)}<span style="opacity:.25;text-decoration:line-through">${f.repeat(y)}</span> <span>= ?</span>`,
+      en:`${x} take away ${y}`,ur:`${NUM.ur[x]} منفی ${NUM.ur[y]}`};
+  });
+}
+/* ---------- number fun (700+ questions) ---------- */
+const PAIRS=range(1,20).flatMap(a=>range(a+1,20).map(b=>[a,b]));
+const NUM_ITEMS=[
+  ...range(1,19).map(a=>({t:'next',a})), ...range(2,20).map(a=>({t:'prev',a})),
+  ...PAIRS.map(p=>({t:'big',p})), ...PAIRS.map(p=>({t:'small',p})),
+  ...[2,5,10].flatMap(s=>range(1,5).map(k=>({t:'skip',s,k})))
+];
+function qNum(){
+  return deal('num',NUM_ITEMS,it=>{
+    const a=animal(); let c,vals,prompt,vis,en,ur;
+    if(it.t==='next'){c=it.a+1;vals=[c,...near(c,1)];vis=`${it.a} → ?`;prompt=P(`What comes after <b>${it.a}</b>?`,`<b>${it.a}</b> کے بعد کون سا نمبر آتا ہے؟`);en=`What comes after ${it.a}`;ur=''}
+    else if(it.t==='prev'){c=it.a-1;vals=[c,...near(c,0)];vis=`? → ${it.a}`;prompt=P(`What comes before <b>${it.a}</b>?`,`<b>${it.a}</b> سے پہلے کون سا نمبر آتا ہے؟`);en=`What comes before ${it.a}`;ur=''}
+    else if(it.t==='big'||it.t==='small'){
+      const [x,y]=shuf(it.p); const bg=it.t==='big'; c=bg?Math.max(x,y):Math.min(x,y); vals=[x,y];
+      vis=`${x} <span>•</span> ${y}`;
+      prompt=bg?P('Which number is <b>bigger</b>?','کون سا نمبر <b>بڑا</b> ہے؟'):P('Which number is <b>smaller</b>?','کون سا نمبر <b>چھوٹا</b> ہے؟');
+      en=bg?'Which is bigger':'Which is smaller';ur='';
+      return {sig:it.t+c,a,correct:c,opts:numOpts(vals),prompt,vis,en,ur};
+    }
+    else{const st=it.s,s0=st*it.k;c=s0+3*st;vals=[c,...sample([c+1,c-1,c+st,c-st].filter(v=>v>0),2)];
+      vis=`${s0}, ${s0+st}, ${s0+2*st}, ?`;prompt=P(`Count by <b>${st}s</b>. What comes next?`,`<b>${st}</b> کی گنتی۔ اگلا نمبر کون سا ہے؟`);en=`Count by ${st}s`;ur=''}
+    return {sig:it.t+c,a,correct:c,opts:numOpts(vals),prompt,vis,en,ur};
+  });
+}
+/* ---------- ABC (135 questions) ---------- */
+const ABC_ITEMS=[
+  ...range(0,25).map(i=>({t:'pic',i})), ...range(0,25).map(i=>({t:'let',i})), ...range(0,24).map(i=>({t:'next',i})),
+  ...range(0,25).map(i=>({t:'case',i})),
+  ...W3.flatMap((w,i)=>[{t:'miss',i,p:1},{t:'miss',i,p:0}])
+];
+const VOW='AEIOU', CON='BCDFGHJKLMNPRSTVWXYZ';
+function qAbc(){
+  return deal('abc',ABC_ITEMS,it=>{
+    const a=animal(), L=ABC[it.i]||'', lt=x=>({v:x,h:x});
+    if(it.t==='pic'){const [w,e]=W26[it.i];
+      return {sig:L,a,correct:L,vis:e,opts:[L,...sample(ABC.split(''),2,L)].map(lt),
+        prompt:P(`<b>${w}</b> starts with which letter?`,`<b>${w}</b> کس حرف سے شروع ہوتا ہے؟`),en:`${w} starts with which letter?`,ur:''};}
+    if(it.t==='let'){const cw=W26[it.i][0], others=sample(W26.filter((_,k)=>k!==it.i),2);
+      return {sig:L+'p',a,correct:cw,vis:L,opts:[{v:cw,h:W26[it.i][1]},...others.map(o=>({v:o[0],h:o[1]}))],
+        prompt:P(`Which picture starts with <b>${L}</b>?`,`کس تصویر کا نام <b>${L}</b> سے شروع ہوتا ہے؟`),en:`Which picture starts with ${L}?`,ur:''};}
+    if(it.t==='next'){const c=ABC[it.i+1];
+      return {sig:c+'n',a,correct:c,vis:`${L} → ?`,opts:[c,...sample(ABC.split(''),2,c)].map(lt),
+        prompt:P(`Which letter comes after <b>${L}</b>?`,`<b>${L}</b> کے بعد کون سا حرف آتا ہے؟`),en:`Which letter comes after ${L}?`,ur:''};}
+    if(it.t==='case'){const c=L.toLowerCase();
+      return {sig:c+'c',a,correct:c,vis:L,opts:[c,...sample('abcdefghijklmnopqrstuvwxyz'.split(''),2,c)].map(lt),
+        prompt:P(`Find the small letter for <b>${L}</b>`,`<b>${L}</b> کا چھوٹا حرف ڈھونڈو`),en:`Find the small letter for ${L}`,ur:''};}
+    const [w,e]=W3[it.i], c=w[it.p], pool=(it.p?VOW:CON).split('');
+    return {sig:w+it.p,a,correct:c,vis:`${e}<br>${w.split('').map((ch,k)=>k===it.p?'_':ch).join(' ')}`,opts:[c,...sample(pool,2,c)].map(lt),
+      prompt:P('Which letter is missing?','کون سا حرف غائب ہے؟'),en:'Which letter is missing?',ur:''};
+  });
+}
+/* ---------- Urdu letters and words (118 questions) ---------- */
+const URDU_ITEMS=[
+  ...U26.map((_,i)=>({t:'pic',i})), ...U26.map((_,i)=>({t:'let',i})),
+  ...range(1,20).map(n=>({t:'n2w',n})), ...range(1,20).map(n=>({t:'w2n',n})),
+  ...DAYS.map((_,i)=>({t:'dnext',i})), ...DAYS.map((_,i)=>({t:'dprev',i})),
+  ...COLS.map((_,i)=>({t:'col',i}))
+];
+function qUrdu(){
+  return deal('urdu',URDU_ITEMS,it=>{
+    const a=animal(), tx=x=>({v:x,h:x,wide:true});
+    if(it.t==='pic'){const [l,w,e]=U26[it.i], ls=U26.map(u=>u[0]);
+      return {sig:l,a,correct:l,vis:`${e} ${w}`,opts:[l,...sample(ls,2,l)].map(x=>({v:x,h:x})),
+        prompt:P('Which Urdu letter does this start with?','یہ کس حرف سے شروع ہوتا ہے؟'),en:'Which Urdu letter does this start with?',ur:`${w} کس حرف سے شروع ہوتا ہے`};}
+    if(it.t==='let'){const [l,w,e]=U26[it.i], others=sample(U26.filter((_,k)=>k!==it.i),2);
+      return {sig:l+'p',a,correct:l,vis:l,opts:[{v:l,h:e},...others.map(o=>({v:o[0],h:o[2]}))],
+        prompt:P(`Which picture starts with this letter?`,`کس تصویر کا نام اس حرف سے شروع ہوتا ہے؟`),en:'Which picture starts with this letter?',ur:`${l} سے کیا شروع ہوتا ہے`};}
+    if(it.t==='n2w'){const w=NUMU[it.n];
+      return {sig:w,a,correct:w,vis:String(it.n),opts:[w,...sample(range(1,20).map(n=>NUMU[n]),2,w)].map(tx),
+        prompt:P('Which is the Urdu word for this number?','اس نمبر کو اردو میں کیا کہتے ہیں؟'),en:'',ur:`${w}`};}
+    if(it.t==='w2n'){const c=it.n;
+      return {sig:'n'+c,a,correct:c,vis:NUMU[c],opts:numOpts([c,...sample(range(1,20),2,c)]),
+        prompt:P('Which number is this?','یہ کون سا نمبر ہے؟'),en:'',ur:`${NUMU[c]}`};}
+    if(it.t==='dnext'||it.t==='dprev'){const nx=it.t==='dnext', d=DAYS[it.i], c=DAYS[(it.i+(nx?1:6))%7];
+      return {sig:c+it.t,a,correct:c,vis:d,opts:[c,...sample(DAYS,2,c)].map(tx),
+        prompt:nx?P(`Which day comes after <b>${d}</b>?`,`<b>${d}</b> کے بعد کون سا دن آتا ہے؟`):P(`Which day comes before <b>${d}</b>?`,`<b>${d}</b> سے پہلے کون سا دن آتا ہے؟`),en:'',ur:nx?`${d} کے بعد کون سا دن`:`${d} سے پہلے کون سا دن`};}
+    const c=it.i;
+    return {sig:'c'+c,a,correct:c,vis:COLS[c][2],opts:[c,...sample(range(0,COLS.length-1),2,c)].map(i=>({v:i,h:'',bg:COLS[i][0],sw:true})),
+      prompt:P('Tap the colour with this Urdu name','اس نام والے رنگ پر ٹچ کرو'),en:'',ur:`${COLS[c][2]} رنگ`};
+  });
+}
+/* ---------- words: pictures, names and opposites (120 questions) ---------- */
+const WORD_ITEMS=[
+  ...THINGS.map((_,i)=>({t:'e2n',i})), ...THINGS.map((_,i)=>({t:'n2e',i})),
+  ...OPP.flatMap((_,p)=>[{t:'opp',p,s:0},{t:'opp',p,s:1}])
+];
+function qWords(){
+  const li=lang==='ur'?2:1;
+  return deal('words',WORD_ITEMS,it=>{
+    const a=animal();
+    if(it.t==='e2n'){const c=THINGS[it.i];
+      return {sig:c[1],a,correct:c[li],vis:c[0],opts:[c,...sample(THINGS,2,c)].map(x=>({v:x[li],h:x[li],wide:true})),
+        prompt:P('What is this?','یہ کیا ہے؟'),en:c[1]+'?',ur:c[2]};}
+    if(it.t==='n2e'){const c=THINGS[it.i];
+      return {sig:c[1]+'e',a,correct:c[0],vis:c[li],opts:[c,...sample(THINGS,2,c)].map(x=>({v:x[0],h:x[0]})),
+        prompt:P(`Which picture is <b>${c[1]}</b>?`,`<b>${c[2]}</b> کون سا ہے؟`),en:c[1],ur:c[2]};}
+    const o=OPP[it.p], w=it.s?o[1]:o[0], c=it.s?o[0]:o[1], wi=it.s?3:2, ci=it.s?2:3;
+    const pool=OPP.filter((_,k)=>k!==it.p).flatMap(x=>[x[li===2?2:0],x[li===2?3:1]]);
+    return {sig:w+'o',a,correct:o[it.s?(lang==='ur'?2:0):(lang==='ur'?3:1)],
+      vis:lang==='ur'?o[wi]:w,opts:[o[it.s?(lang==='ur'?2:0):(lang==='ur'?3:1)],...sample(pool,2)].map(x=>({v:x,h:x,wide:true})),
+      prompt:P(`What is the <b>opposite</b> of <b>${w}</b>?`,`<b>${o[wi]}</b> کا <b>الٹ</b> کیا ہے؟`),en:`Opposite of ${w}`,ur:o[wi]};
+  });
+}
+
+/* ---------- feedback ---------- */
+function wrong(msg){
+  sNo(); const el=document.getElementById('an'); if(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
+  const b=document.querySelector('.bubble'); if(b)b.innerHTML=msg; say('Try again','دوبارہ کوشش کرو');
+}
+function confetti(){
+  for(let i=0;i<36;i++){const c=document.createElement('div');c.className='confetti';c.textContent=pick(['⭐','🎉','🎈','✨','🌟']);
+    c.style.left=R(100)+'vw';c.style.animationDuration=(2+Math.random()*2)+'s';c.style.animationDelay=Math.random()+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),5000);}
+}
+function win(){
+  const before=unlocked(); stars++; save(); sWin(); confetti(); say('Great job!','شاباش');
+  const after=unlocked(), nu=after>before?ANIMALS[after-1]:null;
+  const o=document.createElement('div');o.className='overlay';
+  o.innerHTML=`<div class="modal"><div class="animal dance">${(nu||cur.a).e}</div>
+   <h2>${nu?t('newFriend'):t('well')} 🎉</h2>
+   <div class="bubble" style="box-shadow:none">${nu?t('isFriend',nm(nu)):t('wonStar')}</div><br>
+   <button class="big go" onclick="this.closest('.overlay').remove();next()">${t('next')}</button></div>`;
+  document.body.appendChild(o);
+}
+function album(){
+  screen='album';
+  shell(`<h1 style="font-size:clamp(28px,7vw,48px)">${t('album')}</h1>
+   <div class="sub">${t('albumSub')}</div>
+   <div class="grid">${ANIMALS.map((a,i)=>`<div class="sticker ${i<unlocked()?'':'lock'}"><span class="e">${a.e}</span>${i<unlocked()?nm(a):'?'}</div>`).join('')}</div>`);
+}
+setLang(lang);
+home();
+</script>
+</body>
+</html>
